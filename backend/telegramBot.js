@@ -3,7 +3,15 @@ import TelegramBot from 'node-telegram-bot-api';
 import { loadData } from './server.js';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import nodeHtmlToImage from 'node-html-to-image';
+import { createCanvas, GlobalFonts } from '@napi-rs/canvas';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Shriftni yuklash (Linux/Windows da matn buzilmasligi uchun)
+GlobalFonts.registerFromPath(path.join(__dirname, 'fonts/Roboto-Regular.ttf'), 'Roboto');
 
 // Load environment from root .env
 dotenv.config({ path: new URL('../.env', import.meta.url).pathname });
@@ -37,130 +45,135 @@ function getRoomStats(allData, row, queryId) {
 }
 
 /**
- * Natijalarni HTML orqali juda sifatli rasmga (PNG) aylantiradi
+ * Natijalarni chiroyli rasm (PNG) sifatida yaratadi (@napi-rs/canvas orqali)
  */
-async function generateImageBuffer(idInput, results, allData) {
-  const studentName = `${results[0]?.student_surname || ''} ${results[0]?.student_name || ''}`.trim();
-  
-  let rowsHtml = '';
-  results.forEach((row, idx) => {
+function generateImageBuffer(idInput, results, allData) {
+  const cols = [
+    { label: '№',           key: '_order',      w: 40 },
+    { label: 'Sana',        key: 'sana',        w: 90 },
+    { label: 'Kun',         key: 'day_name',    w: 80 },
+    { label: 'Vaqt',        key: '_time',       w: 110 },
+    { label: 'Fan nomi',    key: 'exam_name',   w: 220 },
+    { label: 'Auditoriya',  key: 'auditorya',   w: 130 },
+    { label: "O'rin",       key: '_order_room', w: 60 },
+    { label: 'Jami',        key: '_total',      w: 60 },
+    { label: 'Ism Familiya',key: '_fullname',   w: 160 },
+  ];
+
+  const ROW_H = 36;
+  const HEADER_H = 50;
+  const TOP_BANNER = 70;
+  const PAD = 20;
+  const totalW = cols.reduce((s, c) => s + c.w, 0) + PAD * 2;
+  const totalH = TOP_BANNER + HEADER_H + ROW_H * results.length + PAD + 28;
+
+  const SCALE = 3; // 3x resolution for high quality
+  const canvas = createCanvas(totalW * SCALE, totalH * SCALE);
+  const ctx = canvas.getContext('2d');
+  ctx.scale(SCALE, SCALE);
+
+  // Background
+  ctx.fillStyle = '#f0f4ff';
+  ctx.fillRect(0, 0, totalW, totalH);
+
+  // Top banner gradient
+  const grad = ctx.createLinearGradient(0, 0, totalW, 0);
+  grad.addColorStop(0, '#1e3a8a');
+  grad.addColorStop(1, '#2563eb');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, totalW, TOP_BANNER);
+
+  // Banner title
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 18px Roboto';
+  ctx.fillText('IMTIHON JADVALI', PAD, 30);
+  const student = `${results[0]?.student_surname || ''} ${results[0]?.student_name || ''}`.trim();
+  ctx.font = '12px Roboto';
+  ctx.fillStyle = 'rgba(255,255,255,0.82)';
+  ctx.fillText(`ID: ${idInput}   |   ${student}   |   ${new Date().toLocaleDateString('uz-UZ')}`, PAD, 52);
+  ctx.fillStyle = 'rgba(255,255,255,0.5)';
+  ctx.font = '11px Roboto';
+  ctx.fillText('SAMDAQU  |  Creator: Shohjahon Shahriyev', PAD, 65);
+
+  // Table header
+  ctx.fillStyle = '#1e40af';
+  ctx.fillRect(PAD, TOP_BANNER, totalW - PAD * 2, HEADER_H);
+
+  // Header labels
+  let xCur = PAD;
+  ctx.font = 'bold 11px Roboto';
+  ctx.fillStyle = '#ffffff';
+  for (const col of cols) {
+    ctx.fillText(col.label, xCur + 6, TOP_BANNER + HEADER_H / 2 + 5);
+    xCur += col.w;
+  }
+
+  // Data rows
+  results.forEach((row, i) => {
+    const ry = TOP_BANNER + HEADER_H + i * ROW_H;
+    ctx.fillStyle = i % 2 === 0 ? '#ffffff' : '#eff6ff';
+    ctx.fillRect(PAD, ry, totalW - PAD * 2, ROW_H);
+
     const stats = getRoomStats(allData, row, idInput);
-    const bgClass = idx % 2 === 0 ? 'bg-white' : 'bg-blue-50';
-    rowsHtml += `
-      <tr style="background-color: ${idx % 2 === 0 ? '#ffffff' : '#eff6ff'}; border-bottom: 1px solid #e2e8f0; text-align: center; color: #1e293b; font-size: 13px;">
-        <td style="padding: 12px 8px;">${idx + 1}</td>
-        <td style="padding: 12px 8px;">${row.sana || '-'}</td>
-        <td style="padding: 12px 8px;">${row.day_name || '-'}</td>
-        <td style="padding: 12px 8px;">${row.start_time || ''}-${row.end_time || ''}</td>
-        <td style="padding: 12px 8px; text-align: left; font-weight: 500;">${row.exam_name || '-'}</td>
-        <td style="padding: 12px 8px; font-weight: 500;">${row.auditorya || '-'}</td>
-        <td style="padding: 12px 8px; background-color: #dbeafe; color: #1d4ed8; font-weight: bold;">${stats.orderInRoom}-chi</td>
-        <td style="padding: 12px 8px; background-color: #d1fae5; color: #065f46; font-weight: bold;">${stats.totalInRoom} ta</td>
-        <td style="padding: 12px 8px; text-align: left;">${row.student_surname || ''} ${row.student_name || ''}</td>
-      </tr>
-    `;
-  });
+    const cells = cols.map(col => {
+      if (col.key === '_order') return String(i + 1);
+      if (col.key === '_time') return `${row.start_time || ''} - ${row.end_time || ''}`;
+      if (col.key === '_order_room') return `${stats.orderInRoom}-chi`;
+      if (col.key === '_total') return `${stats.totalInRoom} ta`;
+      if (col.key === '_fullname') return `${row.student_surname || ''} ${row.student_name || ''}`;
+      const val = (row[col.key] || '').toString();
+      const maxChars = Math.floor(col.w / 7);
+      return val.length > maxChars ? val.slice(0, maxChars - 1) + '…' : val;
+    });
 
-  const html = `
-    <html>
-      <head>
-        <style>
-          body {
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            margin: 0;
-            padding: 30px;
-            background: #f8fafc;
-            width: 1000px; /* Fixed width for consistent rendering */
-          }
-          .container {
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
-            overflow: hidden;
-            border: 1px solid #e2e8f0;
-          }
-          .header {
-            background: linear-gradient(to right, #1e3a8a, #2563eb);
-            padding: 24px;
-            color: white;
-          }
-          .header h1 {
-            margin: 0 0 8px 0;
-            font-size: 24px;
-            font-weight: 800;
-            letter-spacing: 0.5px;
-          }
-          .header p {
-            margin: 0;
-            font-size: 14px;
-            color: rgba(255,255,255,0.9);
-          }
-          table {
-            width: 100%;
-            border-collapse: collapse;
-          }
-          th {
-            background-color: #1e40af;
-            color: white;
-            padding: 14px 8px;
-            font-size: 12px;
-            font-weight: bold;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-          }
-          .footer {
-            padding: 16px 24px;
-            text-align: left;
-            font-size: 12px;
-            color: #64748b;
-            background: #f8fafc;
-            border-top: 1px solid #e2e8f0;
-          }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <h1>IMTIHON JADVALI</h1>
-            <p><strong>ID:</strong> ${idInput} &nbsp;|&nbsp; <strong>Talaba:</strong> ${studentName} &nbsp;|&nbsp; <strong>Sana:</strong> ${new Date().toLocaleDateString('uz-UZ')}</p>
-          </div>
-          <table>
-            <thead>
-              <tr>
-                <th>№</th>
-                <th>Sana</th>
-                <th>Kun</th>
-                <th>Vaqt</th>
-                <th style="text-align: left;">Fan nomi</th>
-                <th>Auditoriya</th>
-                <th>O'rin</th>
-                <th>Jami</th>
-                <th style="text-align: left;">Ism Familiya</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${rowsHtml}
-            </tbody>
-          </table>
-          <div class="footer">
-            Creator: Shohjahon Shahriyev | SAMDAQU
-          </div>
-        </div>
-      </body>
-    </html>
-  `;
-
-  return await nodeHtmlToImage({
-    html: html,
-    quality: 100,
-    puppeteerArgs: {
-      defaultViewport: {
-        width: 1060,
-        height: 100, // dynamically resizes to content
-        deviceScaleFactor: 2 // High DPI Retina quality!
+    let cx = PAD;
+    for (let ci = 0; ci < cols.length; ci++) {
+      const col = cols[ci];
+      if (col.key === '_order_room') {
+        ctx.fillStyle = '#dbeafe';
+        ctx.fillRect(cx, ry, col.w, ROW_H);
+        ctx.fillStyle = '#1d4ed8';
+        ctx.font = 'bold 12px Roboto';
+      } else if (col.key === '_total') {
+        ctx.fillStyle = '#d1fae5';
+        ctx.fillRect(cx, ry, col.w, ROW_H);
+        ctx.fillStyle = '#065f46';
+        ctx.font = 'bold 12px Roboto';
+      } else {
+        ctx.fillStyle = '#1e293b';
+        ctx.font = '12px Roboto';
       }
+      ctx.fillText(cells[ci], cx + 6, ry + ROW_H / 2 + 5);
+      cx += col.w;
     }
+
+    // Row border
+    ctx.strokeStyle = '#e2e8f0';
+    ctx.lineWidth = 0.7;
+    ctx.beginPath();
+    ctx.moveTo(PAD, ry + ROW_H);
+    ctx.lineTo(totalW - PAD, ry + ROW_H);
+    ctx.stroke();
   });
+
+  // Vertical lines
+  let vx = PAD;
+  for (const col of cols) {
+    ctx.strokeStyle = '#cbd5e1';
+    ctx.lineWidth = 0.4;
+    ctx.beginPath();
+    ctx.moveTo(vx, TOP_BANNER);
+    ctx.lineTo(vx, totalH - 28);
+    ctx.stroke();
+    vx += col.w;
+  }
+
+  // Footer
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = '11px Roboto';
+  ctx.fillText('Creator: Shohjahon Shahriyev  |  SAMDAQU', PAD, totalH - 9);
+
+  return canvas.toBuffer('image/png');
 }
 
 
@@ -324,8 +337,8 @@ function startBot(token) {
         // 1. PDF yuborish uchun PDF buffer yasaymiz
         const pdfBuffer = generatePdfBuffer(idInput, results, allData);
 
-        // 2. HTML orqali juda sifatli rasm (PNG) yaratamiz
-        const imageBuffer = await generateImageBuffer(idInput, results, allData);
+        // 2. Rasm (PNG) yaratamiz
+        const imageBuffer = generateImageBuffer(idInput, results, allData);
 
         // 3. Rasmni yuborish
         await bot.sendPhoto(chatId, imageBuffer, {
