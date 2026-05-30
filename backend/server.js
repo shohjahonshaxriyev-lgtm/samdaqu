@@ -7,9 +7,12 @@ import fs from 'fs';
 import { fileURLToPath } from 'url';
 import xlsx from 'xlsx';
 
-dotenv.config();
-
+// Load environment variables from root .env
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+dotenv.config({ path: path.resolve(__dirname, '../.env') });
+
+// Load Telegram bot after environment variables are set
+import('./telegramBot.js').catch(err => console.error('Failed to load Telegram bot:', err));
 const UPLOADS_DIR = path.join(__dirname, 'uploads');
 const PORT = process.env.PORT || 5000;
 
@@ -214,6 +217,9 @@ function loadData() {
 // Server ishga tushganda darhol yuklash
 loadData();
 
+app.listen(PORT, '0.0.0.0', () => console.log(`Server listening on http://0.0.0.0:${PORT}`));
+export { loadData, getActiveExcelPath, readExcelFile };
+
 app.get('/api/stats', (req, res) => {
   try {
     const data = loadData();
@@ -274,4 +280,4 @@ app.get('*', (req, res) => {
   }
 });
 
-app.listen(PORT, '0.0.0.0', () => console.log(`Server listening on http://0.0.0.0:${PORT}`));
+// Duplicate export removed – kept earlier export at line 218
