@@ -11,6 +11,7 @@ export default function UploadSection() {
   const [dragActive, setDragActive] = useState(false);
   const [file, setFile] = useState(null);
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [stats, setStats] = useState({
     activeFile: null,
     totalRows: 0,
@@ -91,34 +92,45 @@ export default function UploadSection() {
 
   const validateAndSetFile = (selectedFile) => {
     const ext = selectedFile.name.split('.').pop().toLowerCase();
-    if (ext === 'xlsx' || ext === 'xls') {
-      setFile(selectedFile);
-    } else {
+    if (ext !== 'xlsx' && ext !== 'xls') {
       toast.showError("Faqat .xlsx yoki .xls formatidagi Excel fayllarini yuklang!");
+      return;
     }
+    if (selectedFile.size > 5 * 1024 * 1024) {
+      toast.showError("Fayl hajmi 5 MB dan katta bo'lishi mumkin emas");
+      return;
+    }
+    setFile(selectedFile);
   };
 
   const handleUpload = async () => {
     if (!file) return;
-    
+
     const formData = new FormData();
     formData.append('excelFile', file);
 
     try {
       setUploading(true);
+      setUploadProgress(0);
       const res = await axios.post('/api/upload', formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
+        },
+        onUploadProgress: (progressEvent) => {
+          const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+          setUploadProgress(percent);
         }
       });
       toast.showSuccess(res.data.message || "Fayl yuklandi!");
       setFile(null);
+      setUploadProgress(0);
       fetchStats();
     } catch (err) {
       console.error(err);
       toast.showError(err.response?.data?.error || "Faylni yuklashda xatolik yuz berdi");
     } finally {
       setUploading(false);
+      setUploadProgress(0);
     }
   };
 
@@ -330,13 +342,21 @@ export default function UploadSection() {
                   <UploadCloud size={22} />
                 </div>
                 {file ? (
-                  <div>
+                  <div className="flex flex-col items-center">
                     <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate max-w-[200px] mx-auto">
                       {file.name}
                     </p>
                     <p className="text-xxs text-slate-400 dark:text-slate-500 mt-0.5">
                       {(file.size / 1024).toFixed(1)} KB
                     </p>
+                    {uploadProgress > 0 && (
+                      <div className="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden mt-2 mb-2">
+                        <div
+                          className="bg-blue-500 h-full transition-all duration-300"
+                          style={{ width: `${uploadProgress}%` }}
+                        />
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <div>

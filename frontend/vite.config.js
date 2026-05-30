@@ -38,6 +38,7 @@ export default defineConfig({
     host: true,
     proxy: {
       '/api': {
+        // Use LAN IP address of the machine running the backend
         target: 'http://localhost:5000',
         changeOrigin: true
       }

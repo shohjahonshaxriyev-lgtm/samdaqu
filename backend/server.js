@@ -186,6 +186,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({
   storage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
   fileFilter: (req, file, cb) => {
     const ext = path.extname(file.originalname).toLowerCase();
     if (ext === '.xlsx' || ext === '.xls') cb(null, true);
@@ -273,4 +274,4 @@ app.get('*', (req, res) => {
   }
 });
 
-app.listen(PORT, () => console.log(`Server port: ${PORT}`));
+app.listen(PORT, '0.0.0.0', () => console.log(`Server listening on http://0.0.0.0:${PORT}`));
