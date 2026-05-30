@@ -127,7 +127,7 @@ export default function SearchPage({ defaultQuery, onClearDefaultQuery }) {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             disabled={loading}
-            className="w-full pl-12 pr-32 py-4 rounded-3xl glass-effect text-slate-800 dark:text-slate-100 font-bold placeholder-slate-400 border border-slate-200/50 dark:border-slate-800/80 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition-all duration-300 text-sm soft-shadow"
+            className="w-full pl-12 pr-32 py-4 rounded-3xl glass-effect text-slate-800 dark:text-slate-100 font-bold placeholder-slate-400 border border-slate-200/50 dark:border-slate-800/80 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition-all duration-300 text-base soft-shadow"
           />
           <button
             type="submit"

@@ -1,8 +1,18 @@
 {
-  "totalSearches": 15,
-  "successfulSearches": 14,
-  "failedSearches": 1,
+  "totalSearches": 17,
+  "successfulSearches": 15,
+  "failedSearches": 2,
   "lastSearches": [
+    {
+      "query": "116650",
+      "timestamp": "2026-05-30T09:28:45.119Z",
+      "foundCount": 0
+    },
+    {
+      "query": "398275",
+      "timestamp": "2026-05-30T09:10:07.027Z",
+      "foundCount": 6
+    },
     {
       "query": "398275",
       "timestamp": "2026-05-28T22:32:20.071Z",
@@ -42,20 +52,10 @@
       "query": "398275",
       "timestamp": "2026-05-28T19:53:10.000Z",
       "foundCount": 6
-    },
-    {
-      "query": "398275",
-      "timestamp": "2026-05-28T19:52:43.928Z",
-      "foundCount": 6
-    },
-    {
-      "query": "398275",
-      "timestamp": "2026-05-28T19:47:42.737Z",
-      "foundCount": 6
     }
   ],
   "popularSearches": {
-    "398275": 6,
+    "398275": 7,
     "643129": 8
   }
 }

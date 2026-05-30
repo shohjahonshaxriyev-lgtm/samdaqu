@@ -120,3 +120,10 @@
   background-size: 200% 100%;
   animation: wave-loading 1.5s infinite;
 }
+
+/* Mobil klaviatura ochilganda bottom navni yashirish */
+@media (max-height: 500px) {
+  .bottom-nav-hide {
+    display: none !important;
+  }
+}

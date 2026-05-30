@@ -26,7 +26,7 @@ export default function HistoryPage({ onSelectSearch }) {
   const fetchGlobalHistory = async () => {
     try {
       setLoadingGlobal(true);
-      const res = await axios.get('http://localhost:5000/api/stats');
+      const res = await axios.get('/api/stats');
       if (res.data && res.data.stats && res.data.stats.lastSearches) {
         setGlobalHistory(res.data.stats.lastSearches);
       }
