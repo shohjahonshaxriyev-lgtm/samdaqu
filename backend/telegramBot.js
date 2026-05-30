@@ -91,9 +91,6 @@ function generateImageBuffer(idInput, results, allData) {
   ctx.font = '12px Roboto';
   ctx.fillStyle = 'rgba(255,255,255,0.82)';
   ctx.fillText(`ID: ${idInput}   |   ${student}   |   ${new Date().toLocaleDateString('uz-UZ')}`, PAD, 52);
-  ctx.fillStyle = 'rgba(255,255,255,0.5)';
-  ctx.font = '11px Roboto';
-  ctx.fillText('SAMDAQU  |  Creator: Shohjahon Shahriyev', PAD, 65);
 
   // Table header
   ctx.fillStyle = '#1e40af';
@@ -292,14 +289,12 @@ function startBot(token) {
     const chatId = msg.chat.id;
     if (msg.text && msg.text.startsWith('/start')) return;
 
-    if (awaitingId.get(chatId)) {
-      const idInput = msg.text?.trim();
-      awaitingId.set(chatId, false);
+    const idInput = msg.text?.trim();
 
-      if (!idInput) {
-        bot.sendMessage(chatId, '❌ ID kiritilmadi. Qaytadan /start bosing.');
-        return;
-      }
+    if (!idInput) {
+      bot.sendMessage(chatId, '❌ Iltimos, ID raqamingizni kiriting.');
+      return;
+    }
 
       const searchMsg = await bot.sendMessage(chatId, '🔍 Qidirilmoqda...');
 
@@ -367,7 +362,6 @@ function startBot(token) {
           chat_id: chatId, message_id: searchMsg.message_id
         });
       }
-    }
   });
 
   console.log('✅ Telegram bot ishga tushdi.');
