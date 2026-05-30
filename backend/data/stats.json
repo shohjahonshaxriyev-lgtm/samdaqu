@@ -1,8 +1,38 @@
 {
-  "totalSearches": 18,
-  "successfulSearches": 16,
+  "totalSearches": 24,
+  "successfulSearches": 22,
   "failedSearches": 2,
   "lastSearches": [
+    {
+      "query": "643129",
+      "timestamp": "2026-05-30T18:46:04.477Z",
+      "foundCount": 6
+    },
+    {
+      "query": "643129",
+      "timestamp": "2026-05-30T18:35:36.023Z",
+      "foundCount": 6
+    },
+    {
+      "query": "643129",
+      "timestamp": "2026-05-30T18:34:06.947Z",
+      "foundCount": 6
+    },
+    {
+      "query": "643129",
+      "timestamp": "2026-05-30T18:28:02.426Z",
+      "foundCount": 6
+    },
+    {
+      "query": "643129",
+      "timestamp": "2026-05-30T18:27:11.157Z",
+      "foundCount": 6
+    },
+    {
+      "query": "398275",
+      "timestamp": "2026-05-30T18:22:47.359Z",
+      "foundCount": 6
+    },
     {
       "query": "643129",
       "timestamp": "2026-05-30T16:33:36.066Z",
@@ -22,40 +52,10 @@
       "query": "398275",
       "timestamp": "2026-05-28T22:32:20.071Z",
       "foundCount": 6
-    },
-    {
-      "query": "643129",
-      "timestamp": "2026-05-28T22:31:55.406Z",
-      "foundCount": 6
-    },
-    {
-      "query": "643129",
-      "timestamp": "2026-05-28T21:29:29.143Z",
-      "foundCount": 6
-    },
-    {
-      "query": "643129",
-      "timestamp": "2026-05-28T20:50:44.756Z",
-      "foundCount": 6
-    },
-    {
-      "query": "643129",
-      "timestamp": "2026-05-28T20:48:23.047Z",
-      "foundCount": 0
-    },
-    {
-      "query": "398275",
-      "timestamp": "2026-05-28T20:18:15.217Z",
-      "foundCount": 6
-    },
-    {
-      "query": "398275",
-      "timestamp": "2026-05-28T20:00:18.635Z",
-      "foundCount": 6
     }
   ],
   "popularSearches": {
-    "398275": 7,
-    "643129": 9
+    "398275": 8,
+    "643129": 14
   }
 }

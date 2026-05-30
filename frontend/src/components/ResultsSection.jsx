@@ -1,5 +1,5 @@
 import React from 'react';
-import { FileText, Download, MapPin, Calendar, Clock, User, Award, BookOpen } from 'lucide-react';
+import { FileText, Download, MapPin, Calendar, Clock, User, Award, Users, Hash } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { useToast } from '../context/ToastContext';
@@ -41,16 +41,16 @@ export default function ResultsSection({ results, searchedId }) {
   ];
 
   const headers = [
-    { label: 'ID', key: 'id' },
+    { label: '№', key: '_order' },
     { label: 'Sana', key: 'sana' },
-    { label: 'day_name', key: 'day_name' },
-    { label: 'start_time', key: 'start_time' },
-    { label: 'end_time', key: 'end_time' },
-    { label: 'Faningiz', key: 'exam_code' },
-    { label: 'exam_name', key: 'exam_name' },
-    { label: 'Auditorya', key: 'auditorya' },
-    { label: 'student_name', key: 'student_name' },
-    { label: 'student_surname', key: 'student_surname' }
+    { label: 'Kun', key: 'day_name' },
+    { label: 'Boshlanish', key: 'start_time' },
+    { label: 'Tugash', key: 'end_time' },
+    { label: 'Fan nomi', key: 'exam_name' },
+    { label: 'Auditoriya', key: 'auditorya' },
+    { label: 'Xonadagi o\'rin', key: '_roomOrder' },
+    { label: 'Xonadagi talabalar', key: '_roomTotal' },
+    { label: 'Ism Familiya', key: '_fullname' },
   ];
 
   const exportPDF = () => {
@@ -61,67 +61,90 @@ export default function ResultsSection({ results, searchedId }) {
         format: 'a4'
       });
 
-      const studentName = `${sortedResults[0].student_name || ''} ${sortedResults[0].student_surname || ''}`;
-      
-      // Document title and header
-      doc.setFontSize(18);
-      doc.setTextColor(37, 99, 255); // royal blue
-      doc.text("IMTIHON JADVALI", 14, 20);
-      
-      doc.setFontSize(11);
-      doc.setTextColor(100, 116, 139);
-      doc.text(`Talaba: ${studentName}`, 14, 28);
-      doc.text(`Talaba ID: ${searchedId}`, 14, 34);
-      doc.text(`Yuklab olingan sana: ${new Date().toLocaleDateString('uz-UZ')}`, 230, 20);
+      const studentName = `${sortedResults[0].student_surname || ''} ${sortedResults[0].student_name || ''}`;
 
-      // Create PDF Table Data
-      const tableHeaders = headers.map(h => h.label);
-      const tableRows = sortedResults.map(row => [
-        row.id || '',
+      // Blue header banner
+      doc.setFillColor(37, 99, 235);
+      doc.roundedRect(14, 10, 270, 22, 3, 3, 'F');
+      doc.setFontSize(13);
+      doc.setTextColor(255, 255, 255);
+      doc.text('IMTIHON JADVALI', 18, 22);
+      doc.setFontSize(8);
+      doc.text(`Talaba: ${studentName}  |  ID: ${searchedId}  |  ${new Date().toLocaleDateString('uz-UZ')}`, 18, 29);
+
+      // PDF table columns
+      const pdfHeaders = [
+        'Tartib\nraqam',
+        'Sana',
+        'Kun',
+        'Boshlanish',
+        'Tugash',
+        'Fan nomi',
+        'Auditoriya',
+        'Xonadagi\no\'rin',
+        'Xonadagi\ntalabalar',
+        'Ism Familiya',
+      ];
+
+      const pdfRows = sortedResults.map((row, idx) => [
+        idx + 1,
         row.sana || '',
         row.day_name || '',
         row.start_time || '',
         row.end_time || '',
-        'Faningiz',
         row.exam_name || '',
         row.auditorya || '',
-        row.student_name || '',
-        row.student_surname || ''
+        row.roomStats ? `${row.roomStats.orderInRoom}-chi` : '-',
+        row.roomStats ? `${row.roomStats.totalInRoom} ta` : '-',
+        `${row.student_surname || ''} ${row.student_name || ''}`,
       ]);
 
       autoTable(doc, {
-        head: [tableHeaders],
-        body: tableRows,
-        startY: 40,
+        head: [pdfHeaders],
+        body: pdfRows,
+        startY: 38,
         theme: 'striped',
         headStyles: {
-          fillColor: [37, 99, 255],
+          fillColor: [30, 64, 175],
           textColor: [255, 255, 255],
-          fontSize: 9,
+          fontSize: 8,
           fontStyle: 'bold',
-          halign: 'center'
+          halign: 'center',
+          valign: 'middle',
+          minCellHeight: 12,
         },
         bodyStyles: {
           fontSize: 8,
           textColor: [30, 41, 59],
-          halign: 'center'
+          halign: 'center',
+          valign: 'middle',
         },
+        alternateRowStyles: { fillColor: [239, 246, 255] },
         columnStyles: {
-          6: { cellWidth: 50, halign: 'left' }, // exam_name gets more width
-          8: { cellWidth: 25 },
-          9: { cellWidth: 25 }
+          0: { cellWidth: 14, halign: 'center' },   // Tartib raqam
+          5: { cellWidth: 55, halign: 'left' },       // Fan nomi
+          7: { cellWidth: 18, fillColor: [219, 234, 254] }, // Xonadagi o'rin (highlight)
+          8: { cellWidth: 18, fillColor: [209, 250, 229] }, // Xonadagi talabalar (highlight)
+          9: { cellWidth: 35, halign: 'left' },       // Ism
         },
-        styles: {
-          overflow: 'linebreak',
-          cellPadding: 3
-        }
+        styles: { overflow: 'linebreak', cellPadding: 2.5 },
+        // Footer
+        didDrawPage: (data) => {
+          doc.setFontSize(7);
+          doc.setTextColor(156, 163, 175);
+          doc.text(
+            `Creator: Shohjahon Shahriyev | SAMDAQU | Sahifa ${data.pageNumber}`,
+            14,
+            doc.internal.pageSize.height - 5
+          );
+        },
       });
 
       doc.save(`imtihon_jadvali_${searchedId}.pdf`);
-      toast.showSuccess("PDF muvaffaqiyatli yuklab olindi!");
+      toast.showSuccess('PDF muvaffaqiyatli yuklab olindi!');
     } catch (error) {
       console.error(error);
-      toast.showError("PDF yuklab olishda xatolik yuz berdi");
+      toast.showError('PDF yuklab olishda xatolik yuz berdi');
     }
   };
 
@@ -141,6 +164,9 @@ export default function ResultsSection({ results, searchedId }) {
           PDF Yuklash
         </button>
       </div>
+
+
+
 
       {/* Desktop view: Colorful Table */}
       <div className="hidden md:block w-full overflow-x-auto rounded-3xl glass-effect soft-shadow border border-slate-200/20">
@@ -165,14 +191,27 @@ export default function ResultsSection({ results, searchedId }) {
                 key={rowIdx} 
                 className="hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors"
               >
-                {headers.map((h, colIdx) => (
-                  <td 
-                    key={colIdx} 
-                    className="p-4 text-xs text-center text-slate-700 dark:text-slate-300 font-medium"
-                  >
-                    {h.key === 'exam_code' ? 'Faningiz' : (row[h.key] || '-')}
-                  </td>
-                ))}
+                {headers.map((h, colIdx) => {
+                  let val;
+                  if (h.key === '_order') val = rowIdx + 1;
+                  else if (h.key === '_roomOrder') val = row.roomStats ? (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 font-bold text-xxxxs">
+                      <Hash size={10} />{row.roomStats.orderInRoom}-o'rin
+                    </span>
+                  ) : '-';
+                  else if (h.key === '_roomTotal') val = row.roomStats ? (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 font-bold text-xxxxs">
+                      <Users size={10} />{row.roomStats.totalInRoom} ta
+                    </span>
+                  ) : '-';
+                  else if (h.key === '_fullname') val = `${row.student_surname || ''} ${row.student_name || ''}`;
+                  else val = row[h.key] || '-';
+                  return (
+                    <td key={colIdx} className="p-4 text-xs text-center text-slate-700 dark:text-slate-300 font-medium">
+                      {val}
+                    </td>
+                  );
+                })}
               </tr>
             ))}
           </tbody>
@@ -186,87 +225,84 @@ export default function ResultsSection({ results, searchedId }) {
             key={idx}
             className="glass-effect rounded-3xl p-5 soft-shadow border border-slate-200/20 relative overflow-hidden"
           >
-            {/* Background design accents */}
             <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-blue-500/10 to-transparent rounded-bl-full pointer-events-none" />
             
-            {/* Header: Exam Name and Code */}
+            {/* Header */}
             <div className="flex items-start justify-between gap-4 mb-4">
               <div>
-                <span className="px-2 py-0.5 text-xxxxs font-bold uppercase tracking-wider rounded bg-pink-50 dark:bg-pink-950/20 text-pink-600 dark:text-pink-400">
-                  Faningiz
+                <span className="px-2 py-0.5 text-xxxxs font-bold uppercase tracking-wider rounded bg-blue-50 dark:bg-blue-950/20 text-blue-600 dark:text-blue-400">
+                  #{idx + 1} — Sizning faningiz
                 </span>
                 <h4 className="text-sm font-bold text-slate-850 dark:text-slate-150 mt-1 leading-tight">
                   {row.exam_name || 'Fan nomi kiritilmagan'}
                 </h4>
               </div>
-              <span className="text-xs font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/20 px-2.5 py-1 rounded-xl">
+              <span className="text-xs font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/20 px-2.5 py-1 rounded-xl shrink-0">
                 {row.start_time || '--:--'}
               </span>
             </div>
 
             <div className="grid grid-cols-2 gap-y-3.5 gap-x-2 text-xxs text-slate-500 dark:text-slate-400 border-t border-slate-100/50 dark:border-slate-800/50 pt-4">
-              
-              {/* Date */}
               <div className="flex items-center gap-2">
                 <Calendar size={14} className="text-slate-400" />
                 <div>
                   <p className="text-xxxxs uppercase tracking-wider text-slate-400 font-semibold">Sana / Kun</p>
-                  <p className="font-bold text-slate-700 dark:text-slate-300">
-                    {row.sana || '-'} ({row.day_name || '-'})
-                  </p>
+                  <p className="font-bold text-slate-700 dark:text-slate-300">{row.sana || '-'} ({row.day_name || '-'})</p>
                 </div>
               </div>
-
-              {/* Time */}
               <div className="flex items-center gap-2">
                 <Clock size={14} className="text-slate-400" />
                 <div>
                   <p className="text-xxxxs uppercase tracking-wider text-slate-400 font-semibold">Vaqti</p>
-                  <p className="font-bold text-slate-700 dark:text-slate-300">
-                    {row.start_time || '-'} - {row.end_time || '-'}
-                  </p>
+                  <p className="font-bold text-slate-700 dark:text-slate-300">{row.start_time || '-'} - {row.end_time || '-'}</p>
                 </div>
               </div>
-
-              {/* Location */}
               <div className="flex items-center gap-2">
                 <MapPin size={14} className="text-slate-400" />
                 <div>
                   <p className="text-xxxxs uppercase tracking-wider text-slate-400 font-semibold">Auditoriya</p>
-                  <p className="font-bold text-slate-700 dark:text-slate-300">
-                    {row.auditorya || '-'}
-                  </p>
+                  <p className="font-bold text-slate-700 dark:text-slate-300">{row.auditorya || '-'}</p>
                 </div>
               </div>
-
-              {/* Student */}
               <div className="flex items-center gap-2">
                 <User size={14} className="text-slate-400" />
                 <div>
                   <p className="text-xxxxs uppercase tracking-wider text-slate-400 font-semibold">Talaba ID</p>
-                  <p className="font-bold text-slate-700 dark:text-slate-300">
-                    {row.id || '-'}
-                  </p>
+                  <p className="font-bold text-slate-700 dark:text-slate-300">{row.id || '-'}</p>
                 </div>
               </div>
-
             </div>
 
-            {/* Student Full Name Banner */}
-            <div className="mt-4 p-3 bg-slate-50/50 dark:bg-slate-800/30 rounded-2xl flex items-center justify-between border border-slate-100/50 dark:border-slate-800/50">
+            {/* Room Stats */}
+            {row.roomStats && (
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                <div className="flex items-center gap-2 p-2.5 rounded-2xl bg-blue-50 dark:bg-blue-950/20 border border-blue-500/15">
+                  <Hash size={14} className="text-blue-500 shrink-0" />
+                  <div>
+                    <p className="text-xxxxs text-blue-400 font-semibold uppercase tracking-wider">Xonadagi o'rin</p>
+                    <p className="text-sm font-extrabold text-blue-600 dark:text-blue-400">{row.roomStats.orderInRoom}-chi</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 p-2.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-500/15">
+                  <Users size={14} className="text-emerald-500 shrink-0" />
+                  <div>
+                    <p className="text-xxxxs text-emerald-400 font-semibold uppercase tracking-wider">Jami talabalar</p>
+                    <p className="text-sm font-extrabold text-emerald-600 dark:text-emerald-400">{row.roomStats.totalInRoom} ta</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Student Name */}
+            <div className="mt-3 p-3 bg-slate-50/50 dark:bg-slate-800/30 rounded-2xl flex items-center justify-between border border-slate-100/50 dark:border-slate-800/50">
               <div className="flex items-center gap-2 text-xxs">
                 <Award size={14} className="text-blue-500" />
                 <span className="font-bold text-slate-700 dark:text-slate-300">
                   {row.student_surname || ''} {row.student_name || ''}
                 </span>
               </div>
-              <span className="text-xxxxs text-slate-400 dark:text-slate-500 uppercase tracking-widest font-semibold">
-                Talaba
-              </span>
+              <span className="text-xxxxs text-slate-400 dark:text-slate-500 uppercase tracking-widest font-semibold">Talaba</span>
             </div>
-
-
-
           </div>
         ))}
       </div>

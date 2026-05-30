@@ -241,7 +241,30 @@ app.post('/api/search', (req, res) => {
     const queryStr = id.toString().trim().toLowerCase();
     const results = data.filter(row => row.id && row.id.toString().toLowerCase() === queryStr);
     logSearch(id.toString(), results.length);
-    res.json(results);
+
+    // For each result, compute room stats: how many students share same auditorya+sana, and student's order
+    const enriched = results.map(row => {
+      const sameRoom = data.filter(r =>
+        r.auditorya && row.auditorya &&
+        r.auditorya.toString().trim().toLowerCase() === row.auditorya.toString().trim().toLowerCase() &&
+        r.sana && row.sana &&
+        r.sana.toString().trim() === row.sana.toString().trim() &&
+        r.start_time && row.start_time &&
+        r.start_time.toString().trim() === row.start_time.toString().trim()
+      );
+      // Sort by id to get consistent order number
+      sameRoom.sort((a, b) => a.id.toString().localeCompare(b.id.toString(), undefined, { numeric: true }));
+      const orderInRoom = sameRoom.findIndex(r => r.id.toString().toLowerCase() === queryStr) + 1;
+      return {
+        ...row,
+        roomStats: {
+          totalInRoom: sameRoom.length,
+          orderInRoom,
+        }
+      };
+    });
+
+    res.json(enriched);
   } catch (error) {
     res.status(500).json({ error: 'Qidiruv xatosi' });
   }
