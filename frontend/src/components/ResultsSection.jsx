@@ -275,19 +275,19 @@ export default function ResultsSection({ results, searchedId }) {
 
             {/* Room Stats */}
             {row.roomStats && (
-              <div className="mt-3 grid grid-cols-2 gap-2">
-                <div className="flex items-center gap-2 p-2.5 rounded-2xl bg-blue-50 dark:bg-blue-950/20 border border-blue-500/15">
-                  <Hash size={14} className="text-blue-500 shrink-0" />
+              <div className="mt-2 flex items-center gap-2">
+                <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-blue-50 dark:bg-blue-950/20 border border-blue-500/15">
+                  <Hash size={11} className="text-blue-500 shrink-0" />
                   <div>
-                    <p className="text-xxxxs text-blue-400 font-semibold uppercase tracking-wider">Xonadagi o'rin</p>
-                    <p className="text-sm font-extrabold text-blue-600 dark:text-blue-400">{row.roomStats.orderInRoom}-chi</p>
+                    <p className="text-xxxxs text-blue-400 font-semibold leading-none mb-0.5">Xonadagi o'rin</p>
+                    <p className="text-xs font-bold text-blue-600 dark:text-blue-400 leading-none">{row.roomStats.orderInRoom}-chi</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2 p-2.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-500/15">
-                  <Users size={14} className="text-emerald-500 shrink-0" />
+                <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-500/15">
+                  <Users size={11} className="text-emerald-500 shrink-0" />
                   <div>
-                    <p className="text-xxxxs text-emerald-400 font-semibold uppercase tracking-wider">Jami talabalar</p>
-                    <p className="text-sm font-extrabold text-emerald-600 dark:text-emerald-400">{row.roomStats.totalInRoom} ta</p>
+                    <p className="text-xxxxs text-emerald-400 font-semibold leading-none mb-0.5">Jami talabalar</p>
+                    <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400 leading-none">{row.roomStats.totalInRoom} ta</p>
                   </div>
                 </div>
               </div>
