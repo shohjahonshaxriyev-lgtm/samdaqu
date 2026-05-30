@@ -1,7 +1,7 @@
 import React from 'react';
 import { Sun, Moon, Search } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
-import logo from '../assets/logo.png';
+
 
 export default function Navbar() {
   const { darkMode, toggleTheme } = useTheme();
@@ -13,14 +13,14 @@ export default function Navbar() {
         {/* Logo and Name */}
         <div className="flex items-center gap-2.5">
           <div className="w-10 h-10 rounded-full flex items-center justify-center text-white soft-shadow overflow-hidden bg-white">
-            <img src={logo} alt="SamDAQU Logo" className="w-full h-full object-cover" />
+            <img src="/logo.png" alt="SamDAQU Logo" className="w-full h-full object-cover" />
           </div>
           <div>
             <h1 className="text-base font-bold tracking-tight text-slate-800 dark:text-slate-100 leading-tight">
               SAMDAQU
             </h1>
-            <p className="text-xxs font-medium text-slate-400 dark:text-slate-500 uppercase tracking-widest">
-              CEO Shohjahon Shahriyev
+            <p className="text-slate-400 dark:text-slate-500 uppercase tracking-[0.15em]" style={{ fontFamily: "'Inter', sans-serif", fontSize: '9px', fontWeight: 400 }}>
+              Creator : Shohjahon Shahriyev
             </p>
           </div>
         </div>

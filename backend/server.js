@@ -193,14 +193,33 @@ const upload = multer({
   }
 });
 
+// ==========================================
+// IN-MEMORY CACHE - Excel faylni faqat 1 marta o'qiydi
+// ==========================================
+let cachedData = null;
+let cachedFileName = null;
+
+function loadData() {
+  const activeFile = getActiveExcelPath(UPLOADS_DIR);
+  if (!activeFile) { cachedData = null; cachedFileName = null; return null; }
+  const currentName = path.basename(activeFile);
+  if (cachedData && cachedFileName === currentName) return cachedData;
+  cachedData = readExcelFile(activeFile);
+  cachedFileName = currentName;
+  console.log(`Excel yuklandi va xotiraga saqlandi: ${currentName} (${cachedData.length} qator)`);
+  return cachedData;
+}
+
+// Server ishga tushganda darhol yuklash
+loadData();
+
 app.get('/api/stats', (req, res) => {
   try {
-    const activeFile = getActiveExcelPath(UPLOADS_DIR);
-    if (!activeFile) return res.json({ activeFile: null, totalRows: 0, columns: [], stats: getStats() });
-    const data = readExcelFile(activeFile);
+    const data = loadData();
+    if (!data) return res.json({ activeFile: null, totalRows: 0, columns: [], stats: getStats() });
     let columns = data.length > 0 ? Object.keys(data[0]).filter(k => k !== 'extra') : [];
     if (data.length > 0 && data[0].extra) columns = [...columns, ...Object.keys(data[0].extra)];
-    res.json({ activeFile: path.basename(activeFile), totalRows: data.length, columns, stats: getStats() });
+    res.json({ activeFile: cachedFileName, totalRows: data.length, columns, stats: getStats() });
   } catch (error) {
     res.status(500).json({ error: 'Xatolik' });
   }
@@ -210,9 +229,8 @@ app.post('/api/search', (req, res) => {
   try {
     const { id } = req.body;
     if (!id) return res.status(400).json({ error: "ID kiritilmagan" });
-    const activeFile = getActiveExcelPath(UPLOADS_DIR);
-    if (!activeFile) { logSearch(id.toString(), 0); return res.json([]); }
-    const data = readExcelFile(activeFile);
+    const data = loadData();
+    if (!data) { logSearch(id.toString(), 0); return res.json([]); }
     const queryStr = id.toString().trim().toLowerCase();
     const results = data.filter(row => row.id && row.id.toString().toLowerCase() === queryStr);
     logSearch(id.toString(), results.length);
@@ -228,6 +246,9 @@ app.post('/api/upload', upload.single('excelFile'), (req, res) => {
     const filePath = req.file.path;
     try {
       const data = readExcelFile(filePath);
+      // Yangi fayl yuklanganda cache yangilanadi
+      cachedData = data;
+      cachedFileName = req.file.filename;
       res.json({ message: 'Yuklandi', fileName: req.file.filename, totalRows: data.length });
     } catch (e) {
       fs.unlinkSync(filePath);

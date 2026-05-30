@@ -55,8 +55,8 @@ function AppContent() {
               <h1 className="text-sm font-bold tracking-tight text-slate-800 dark:text-slate-100">
                 SAMDAQU
               </h1>
-              <p className="text-xxxxs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-0.5">
-                CEO Shohjahon Shahriyev
+              <p className="text-slate-400 dark:text-slate-500 uppercase tracking-[0.15em] mt-0.5" style={{ fontFamily: "'Inter', sans-serif", fontSize: '9px', fontWeight: 400 }}>
+                Creator : Shohjahon Shahriyev
               </p>
             </div>
           </div>
@@ -108,7 +108,7 @@ function AppContent() {
       </div>
 
       {/* Main Content Area */}
-      <main className="flex-1 overflow-y-auto">
+      <main className="flex-1 overflow-y-auto pb-20 md:pb-0">
         <AnimatePresence mode="wait">
           {activeTab === 'search' && (
             <SearchPage 

@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Search } from 'lucide-react';
-import logo from '../assets/logo.png';
+
 
 export default function PremiumLoader() {
   return (
@@ -36,7 +36,7 @@ export default function PremiumLoader() {
             transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
             className="w-16 h-16 rounded-full flex items-center justify-center text-white soft-shadow overflow-hidden bg-white"
           >
-            <img src={logo} alt="SamDAQU Logo" className="w-full h-full object-cover" />
+            <img src="/logo.png" alt="SamDAQU Logo" className="w-full h-full object-cover" />
           </motion.div>
         </div>
 
@@ -50,8 +50,8 @@ export default function PremiumLoader() {
           <h2 className="text-xl font-bold tracking-tight text-white">
             SAMDAQU
           </h2>
-          <p className="text-xxs font-bold text-slate-500 uppercase tracking-widest mt-1">
-            CEO Shohjahon Shahriyev
+          <p className="text-slate-500 uppercase tracking-[0.15em] mt-1" style={{ fontFamily: "'Inter', sans-serif", fontSize: '9px', fontWeight: 400 }}>
+            Creator : Shohjahon Shahriyev
           </p>
         </motion.div>
 
