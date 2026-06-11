@@ -82,6 +82,7 @@ export default function ResultsSection({ results, searchedId }) {
         'Tugash',
         'Fan nomi',
         'Auditoriya',
+        'Stul\nraqami',
         'Xonadagi\no\'rin',
         'Xonadagi\ntalabalar',
         'Ism Familiya',
@@ -95,6 +96,7 @@ export default function ResultsSection({ results, searchedId }) {
         row.end_time || '',
         row.exam_name || '',
         row.auditorya || '',
+        row.stul_raqami || '',
         row.roomStats ? `${row.roomStats.orderInRoom}-chi` : '-',
         row.roomStats ? `${row.roomStats.totalInRoom} ta` : '-',
         `${row.student_surname || ''} ${row.student_name || ''}`,
@@ -123,10 +125,11 @@ export default function ResultsSection({ results, searchedId }) {
         alternateRowStyles: { fillColor: [239, 246, 255] },
         columnStyles: {
           0: { cellWidth: 14, halign: 'center' },   // Tartib raqam
-          5: { cellWidth: 55, halign: 'left' },       // Fan nomi
-          7: { cellWidth: 18, fillColor: [219, 234, 254] }, // Xonadagi o'rin (highlight)
-          8: { cellWidth: 18, fillColor: [209, 250, 229] }, // Xonadagi talabalar (highlight)
-          9: { cellWidth: 35, halign: 'left' },       // Ism
+          5: { cellWidth: 45, halign: 'left' },       // Fan nomi
+          7: { cellWidth: 14, halign: 'center' },       // Stul
+          8: { cellWidth: 18, fillColor: [219, 234, 254] }, // Xonadagi o'rin (highlight)
+          9: { cellWidth: 18, fillColor: [209, 250, 229] }, // Xonadagi talabalar (highlight)
+          10: { cellWidth: 35, halign: 'left' },       // Ism
         },
         styles: { overflow: 'linebreak', cellPadding: 2.5 },
         // Footer
