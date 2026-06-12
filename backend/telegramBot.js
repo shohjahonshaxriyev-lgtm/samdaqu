@@ -153,21 +153,18 @@ function generateImageBuffer(idInput, results, allData) {
     ctx.fillRect(PAD, ry, totalW - PAD * 2, ROW_H);
 
     const stats = getRoomStats(allData, row, idInput);
-    const cells = cols.map(col => {
-      if (col.key === '_order') return String(i + 1);
-      if (col.key === '_time') return `${row.start_time || ''} - ${row.end_time || ''}`;
-      if (col.key === '_order_room') return `${stats.orderInRoom}-chi`;
-      if (col.key === '_total') return `${stats.totalInRoom} ta`;
-      if (col.key === '_fullname') return `${row.student_surname || ''} ${row.student_name || ''}`;
-      const val = (row[col.key] || '').toString();
-      // Harf o'rtacha kengligini hisobga olib, chegarani qisqartiramiz (7 dan 8.5 ga)
-      const maxChars = Math.floor(col.w / 8.5);
-      return val.length > maxChars ? val.slice(0, maxChars - 1) + '…' : val;
-    });
-
     let cx = PAD;
     for (let ci = 0; ci < cols.length; ci++) {
       const col = cols[ci];
+      
+      let val = '';
+      if (col.key === '_order') val = String(i + 1);
+      else if (col.key === '_time') val = `${row.start_time || ''} - ${row.end_time || ''}`;
+      else if (col.key === '_order_room') val = `${stats.orderInRoom}-chi`;
+      else if (col.key === '_total') val = `${stats.totalInRoom} ta`;
+      else if (col.key === '_fullname') val = `${row.student_surname || ''} ${row.student_name || ''}`;
+      else val = (row[col.key] || '').toString();
+
       if (col.key === '_order_room') {
         ctx.fillStyle = '#dbeafe';
         ctx.fillRect(cx, ry, col.w, ROW_H);
@@ -182,7 +179,18 @@ function generateImageBuffer(idInput, results, allData) {
         ctx.fillStyle = '#1e293b';
         ctx.font = '12px Roboto';
       }
-      ctx.fillText(cells[ci], cx + 6, ry + ROW_H / 2 + 5);
+
+      // Aniq o'lchash va sig'maganini kesish
+      let text = val;
+      const maxWidth = col.w - 12;
+      if (ctx.measureText(text).width > maxWidth) {
+        while (text.length > 0 && ctx.measureText(text + '…').width > maxWidth) {
+          text = text.slice(0, -1);
+        }
+        text += '…';
+      }
+
+      ctx.fillText(text, cx + 6, ry + ROW_H / 2 + 5);
       cx += col.w;
     }
 
