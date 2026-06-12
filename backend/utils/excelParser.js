@@ -22,7 +22,8 @@ const MAPPING_RULES = {
   exam_name: ['examname', 'exam', 'fan', 'fannomi', 'predmet', 'dars', 'fannom'],
   auditorya: ['auditorya', 'auditoriya', 'auditory', 'xona', 'xonanomi', 'auditorium', 'auditoriyalar', 'room'],
   student_name: ['studentname', 'name', 'ism', 'student', 'talabaismi', 'firstname', 'talaba_ismi'],
-  student_surname: ['studentsurname', 'surname', 'familya', 'familiya', 'talabafamiliyasi', 'lastname', 'talaba_familiyasi']
+  student_surname: ['studentsurname', 'surname', 'familya', 'familiya', 'talabafamiliyasi', 'lastname', 'talaba_familiyasi'],
+  student_fullname: ['talabafi', 'fio', 'fish', 'fullname', 'talabafio', 'talabafish', 'f_i_o']
 };
 
 /**
@@ -55,9 +56,10 @@ export function mapExcelData(sheetJson) {
 
   // Strict exclusions for fuzzy phase to prevent collisions
   const EXCLUSIONS = {
+    id: ['fan', 'predmet', 'exam', 'dars'], // prevents "fan kodi" from matching "kod"
     exam_name: ['date', 'sana', 'kod', 'code', 'vaqt', 'time'],
-    student_name: ['surname', 'familya', 'familiya', 'last', 'sharif', 'fam'],
-    sana: ['time', 'soat', 'boshlanish', 'tugash', 'start', 'end']
+    student_name: ['surname', 'familya', 'familiya', 'last', 'sharif', 'fam', 'fio', 'fish'],
+    sana: ['time', 'soat', 'boshlanish', 'tugash', 'start', 'end', 'hafta', 'kunnomi']
   };
 
   // Phase 2: Strict fuzzy matching for remaining unmapped keys
@@ -97,6 +99,13 @@ export function mapExcelData(sheetJson) {
         normalizedRow[schemaKey] = ''; // default empty if not found
       }
     });
+
+    // Handle full name split if name and surname are empty
+    if (normalizedRow.student_fullname && !normalizedRow.student_name && !normalizedRow.student_surname) {
+      const parts = normalizedRow.student_fullname.split(' ');
+      normalizedRow.student_surname = parts[0] || '';
+      normalizedRow.student_name = parts.slice(1).join(' ') || '';
+    }
 
     // 2. Set extra properties that were not matched (to support absolute custom columns)
     const extra = {};
