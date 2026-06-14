@@ -53,6 +53,8 @@ function saveSettings(data) {
 // Shriftni yuklash (Linux/Windows da matn buzilmasligi uchun)
 GlobalFonts.registerFromPath(path.join(__dirname, 'fonts/Roboto-Regular.ttf'), 'Roboto');
 
+
+
 // Load environment from root .env
 dotenv.config({ path: new URL('../.env', import.meta.url).pathname });
 
@@ -85,52 +87,51 @@ function getRoomStats(allData, row, queryId) {
 }
 
 /**
- * Natijalarni chiroyli rasm (PNG) sifatida yaratadi (@napi-rs/canvas orqali)
+ * Natijalarni chiroyli rasm (PNG) sifatida yaratadi (@napi-rs/canvas orqali) - saytdagi PDF bilan bir xil dizayn
  */
 function generateImageBuffer(idInput, results, allData) {
   const cols = [
-    { label: '№',           key: '_order',      w: 40 },
-    { label: 'Sana',        key: 'sana',        w: 90 },
-    { label: 'Kun',         key: 'day_name',    w: 80 },
-    { label: 'Vaqt',        key: '_time',       w: 110 },
-    { label: 'Fan nomi',    key: 'exam_name',   w: 250 },
-    { label: 'Auditoriya',  key: 'auditorya',   w: 130 },
-    { label: 'Stul',        key: 'stul_raqami', w: 60 },
-    { label: 'Jami',        key: '_total',      w: 60 },
-    { label: 'Ism Familiya',key: '_fullname',   w: 190 },
+    { label: 'Tartib\nraqam',     key: '_order',      w: 50 },
+    { label: 'Sana',              key: 'sana',        w: 90 },
+    { label: 'Kun',               key: 'day_name',    w: 80 },
+    { label: 'Boshlanish',        key: 'start_time',  w: 80 },
+    { label: 'Tugash',            key: 'end_time',    w: 80 },
+    { label: 'Fan nomi',          key: 'exam_name',   w: 220 },
+    { label: 'Auditoriya',        key: 'auditorya',   w: 120 },
+    { label: 'Stul\nraqami',      key: 'stul_raqami', w: 60 },
+    { label: 'Xonadagi\ntalabalar',key: '_total',     w: 75 },
+    { label: 'Ism Familiya',      key: '_fullname',   w: 180 },
   ];
 
   const ROW_H = 36;
   const HEADER_H = 50;
-  const TOP_BANNER = 70;
+  const TOP_BANNER = 80;
   const PAD = 20;
   const totalW = cols.reduce((s, c) => s + c.w, 0) + PAD * 2;
   const totalH = TOP_BANNER + HEADER_H + ROW_H * results.length + PAD + 28;
 
-  const SCALE = 3; // 3x resolution for high quality
+  const SCALE = 3;
   const canvas = createCanvas(totalW * SCALE, totalH * SCALE);
   const ctx = canvas.getContext('2d');
   ctx.scale(SCALE, SCALE);
 
   // Background
-  ctx.fillStyle = '#f0f4ff';
+  ctx.fillStyle = '#ffffff';
   ctx.fillRect(0, 0, totalW, totalH);
 
-  // Top banner gradient
-  const grad = ctx.createLinearGradient(0, 0, totalW, 0);
-  grad.addColorStop(0, '#1e3a8a');
-  grad.addColorStop(1, '#2563eb');
-  ctx.fillStyle = grad;
-  ctx.fillRect(0, 0, totalW, TOP_BANNER);
+  // Blue header banner (like PDF)
+  ctx.fillStyle = '#2563eb';
+  ctx.beginPath();
+  ctx.roundRect(PAD, 15, totalW - PAD * 2, 50, 6);
+  ctx.fill();
 
   // Banner title
   ctx.fillStyle = '#ffffff';
   ctx.font = 'bold 18px Roboto';
-  ctx.fillText('IMTIHON JADVALI', PAD, 30);
+  ctx.fillText('IMTIHON JADVALI', PAD + 20, 40);
   const student = `${results[0]?.student_surname || ''} ${results[0]?.student_name || ''}`.trim();
   ctx.font = '12px Roboto';
-  ctx.fillStyle = 'rgba(255,255,255,0.82)';
-  ctx.fillText(`ID: ${idInput}   |   ${student}   |   ${new Date().toLocaleDateString('uz-UZ')}`, PAD, 52);
+  ctx.fillText(`Talaba: ${student}   |   ID: ${idInput}   |   ${new Date().toLocaleDateString('uz-UZ')}`, PAD + 20, 56);
 
   // Table header
   ctx.fillStyle = '#1e40af';
@@ -138,12 +139,20 @@ function generateImageBuffer(idInput, results, allData) {
 
   // Header labels
   let xCur = PAD;
-  ctx.font = 'bold 11px Roboto';
   ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 11px Roboto';
+  ctx.textAlign = 'center';
   for (const col of cols) {
-    ctx.fillText(col.label, xCur + 6, TOP_BANNER + HEADER_H / 2 + 5);
+    const lines = col.label.split('\n');
+    if (lines.length === 1) {
+      ctx.fillText(lines[0], xCur + col.w / 2, TOP_BANNER + HEADER_H / 2 + 4);
+    } else {
+      ctx.fillText(lines[0], xCur + col.w / 2, TOP_BANNER + HEADER_H / 2 - 4);
+      ctx.fillText(lines[1], xCur + col.w / 2, TOP_BANNER + HEADER_H / 2 + 10);
+    }
     xCur += col.w;
   }
+  ctx.textAlign = 'left';
 
   // Data rows
   results.forEach((row, i) => {
@@ -158,7 +167,6 @@ function generateImageBuffer(idInput, results, allData) {
       
       let val = '';
       if (col.key === '_order') val = String(i + 1);
-      else if (col.key === '_time') val = `${row.start_time || ''} - ${row.end_time || ''}`;
       else if (col.key === '_total') val = `${stats.totalInRoom} ta`;
       else if (col.key === '_fullname') val = `${row.student_surname || ''} ${row.student_name || ''}`;
       else val = (row[col.key] || '').toString();
@@ -173,17 +181,20 @@ function generateImageBuffer(idInput, results, allData) {
         ctx.font = '12px Roboto';
       }
 
-      // Aniq o'lchash va sig'maganini kesish
+      ctx.textAlign = (col.key === '_order' || col.key === 'stul_raqami' || col.key === '_total') ? 'center' : 'left';
+      
       let text = val;
       const maxWidth = col.w - 12;
-      if (ctx.measureText(text).width > maxWidth) {
+      ctx.textAlign === 'center' ? ctx.measureText(text) : null; // just context
+      if (ctx.measureText(text).width > maxWidth && ctx.textAlign === 'left') {
         while (text.length > 0 && ctx.measureText(text + '…').width > maxWidth) {
           text = text.slice(0, -1);
         }
         text += '…';
       }
 
-      ctx.fillText(text, cx + 6, ry + ROW_H / 2 + 5);
+      const textX = ctx.textAlign === 'center' ? cx + col.w / 2 : cx + 6;
+      ctx.fillText(text, textX, ry + ROW_H / 2 + 4);
       cx += col.w;
     }
 
@@ -207,11 +218,17 @@ function generateImageBuffer(idInput, results, allData) {
     ctx.stroke();
     vx += col.w;
   }
+  // Last line
+  ctx.beginPath();
+  ctx.moveTo(vx, TOP_BANNER);
+  ctx.lineTo(vx, totalH - 28);
+  ctx.stroke();
 
   // Footer
-  ctx.fillStyle = '#94a3b8';
+  ctx.fillStyle = '#9ca3af';
   ctx.font = '11px Roboto';
-  ctx.fillText('@samdaqu_jadvalbot  |  SDTU', PAD, totalH - 9);
+  ctx.textAlign = 'left';
+  ctx.fillText('@samdaqu_jadvalbot | SDTU', PAD, totalH - 9);
 
   return canvas.toBuffer('image/png');
 }
@@ -663,19 +680,11 @@ function startBot(token) {
         return;
       }
 
-      await bot.editMessageText('📄 PDF tayyorlanmoqda...', {
+      await bot.editMessageText('📄 Jadval tayyorlanmoqda...', {
         chat_id: chatId, message_id: searchMsg.message_id
       });
 
       try {
-        // 1. Saytdagi PDF formatini (hujjatni) yaratish
-        const pdfBuffer = generatePdfBuffer(idInput, results, allData);
-
-        await bot.editMessageText('🖼️ Rasm tayyorlanmoqda...', {
-          chat_id: chatId, message_id: searchMsg.message_id
-        });
-
-        // 2. Rasm (PNG) yaratamiz
         const imageBuffer = generateImageBuffer(idInput, results, allData);
 
         const users = loadUsers();
@@ -684,17 +693,10 @@ function startBot(token) {
         const isReminded = reminders.includes(idInput);
         const btnText = isReminded ? "✅ Eslatma yoqilgan" : "🔔 Shu ID uchun eslatma yoqish";
 
-        // Avval hujjatni (PDF) jo'natamiz
-        await bot.sendDocument(chatId, pdfBuffer, {}, {
-          filename: `imtihon_jadvali_${idInput}.pdf`,
-          contentType: 'application/pdf'
-        });
-
-        // So'ngra rasmni qulay ko'rishlari uchun yuboramiz
         await bot.sendPhoto(chatId, imageBuffer, {
           caption:
             `👤 ${results[0]?.student_surname || ''} ${results[0]?.student_name || ''}\n` +
-            `📚 ${results.length} ta imtihon topildi\n📄 (Tepadagi fayl saytdagidek PDF hujjatidir)`,
+            `📚 ${results.length} ta imtihon topildi`,
           reply_markup: {
             inline_keyboard: [[{ text: btnText, callback_data: `remind_${idInput}` }]]
           }
@@ -707,7 +709,7 @@ function startBot(token) {
       } catch (e) {
         console.error('Xatolik:', e);
         bot.editMessageText(
-          "⚠️ *Jadvalingiz topildi!* Lekin xatolik sababli rasmni bu yerda yubora olmadik.\n\nIltimos, natijani ko'rish uchun veb-saytimizdan foydalaning:",
+          "⚠️ *Jadvalingiz topildi!* Lekin xatolik sababli faylni bu yerda yubora olmadik.\n\nIltimos, natijani ko'rish uchun veb-saytimizdan foydalaning:",
           {
             chat_id: chatId,
             message_id: searchMsg.message_id,
