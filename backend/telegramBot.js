@@ -93,10 +93,10 @@ function generateImageBuffer(idInput, results, allData) {
   const cols = [
     { label: 'Tartib\nraqam',     key: '_order',      w: 50 },
     { label: 'Sana',              key: 'sana',        w: 90 },
-    { label: 'Kun',               key: 'day_name',    w: 80 },
+    { label: 'Kun',               key: 'day_name',    w: 95 },
     { label: 'Boshlanish',        key: 'start_time',  w: 80 },
     { label: 'Tugash',            key: 'end_time',    w: 80 },
-    { label: 'Fan nomi',          key: 'exam_name',   w: 220 },
+    { label: 'Fan nomi',          key: 'exam_name',   w: 205 },
     { label: 'Auditoriya',        key: 'auditorya',   w: 120 },
     { label: 'Stul\nraqami',      key: 'stul_raqami', w: 60 },
     { label: 'Xonadagi\no\'rin',  key: '_roomOrder',  w: 70 },
@@ -529,20 +529,23 @@ function startBot(token) {
     } else if (data.startsWith('remind_')) {
       const targetId = data.split('_')[1];
       const users = loadUsers();
+      if (!users[chatId.toString()]) {
+        users[chatId.toString()] = { id: chatId.toString(), reminders: [] };
+      }
       const u = users[chatId.toString()];
-      if (u) {
-        if (!u.reminders) u.reminders = [];
-        if (u.reminders.includes(targetId)) {
-          u.reminders = u.reminders.filter(id => id !== targetId);
-          bot.answerCallbackQuery(query.id, { text: `🔕 Eslatma o'chirildi (${targetId})` });
-        } else {
-          u.reminders.push(targetId);
-          bot.answerCallbackQuery(query.id, { text: `🔔 Eslatma yoqildi (${targetId})` });
-        }
-        fs.writeFileSync(path.join(__dirname, 'users.json'), JSON.stringify(users, null, 2));
+      
+      if (!u.reminders) u.reminders = [];
+      if (u.reminders.includes(targetId)) {
+        u.reminders = u.reminders.filter(id => id !== targetId);
+        bot.answerCallbackQuery(query.id, { text: `🔕 Eslatma o'chirildi (${targetId})` });
+      } else {
+        u.reminders.push(targetId);
+        bot.answerCallbackQuery(query.id, { text: `🔔 Eslatma muvaffaqiyatli yoqildi!\n(${targetId} uchun imtihondan 24 soat va 2 soat oldin xabar beraman)`, show_alert: true });
+      }
+      fs.writeFileSync(path.join(__dirname, 'users.json'), JSON.stringify(users, null, 2));
 
-        // Update inline keyboard text
-        const isReminded = u.reminders.includes(targetId);
+      // Update inline keyboard text
+      const isReminded = u.reminders.includes(targetId);
         const btnText = isReminded ? "✅ Eslatma yoqilgan" : "🔔 Shu ID uchun eslatma yoqish";
         
         bot.editMessageReplyMarkup({
@@ -551,10 +554,9 @@ function startBot(token) {
           chat_id: chatId,
           message_id: query.message.message_id
         }).catch(()=>{});
-      }
     }
     
-    if (data !== 'check_sub') {
+    if (data !== 'check_sub' && !data.startsWith('remind_')) {
       bot.answerCallbackQuery(query.id);
     }
   });
@@ -765,15 +767,19 @@ function startBot(token) {
             const diffMs = examDate.getTime() - now.getTime();
             const diffMins = Math.floor(diffMs / 60000);
 
-            // Imtihonga 50-60 daqiqa qolganda jo'natamiz (har 10 minutda yurganda 1 marta ilinadi)
-            if (diffMins > 50 && diffMins <= 60) {
-              const text = `⏰ *ESLATMA: Imtihonga 1 soat qoldi!*\n\n` +
+            // Imtihonga 24 soat (1440 min) va 2 soat (120 min) qolganda jo'natamiz
+            const is24Hours = diffMins > 1430 && diffMins <= 1440;
+            const is2Hours = diffMins > 110 && diffMins <= 120;
+
+            if (is24Hours || is2Hours) {
+              const timeStr = is24Hours ? "1 kun" : "2 soat";
+              const text = `⏰ *ESLATMA: Imtihonga ${timeStr} qoldi!*\n\n` +
                            `👤 Talaba ID: ${targetId}\n` +
                            `📚 Fan: *${exam.exam_name}*\n` +
                            `🚪 Auditoriya: *${exam.auditorya}*\n` +
-                           `🕒 Boshlanadi: *Bugun, soat ${exam.start_time} da*`;
+                           `🕒 Boshlanish vaqti: *${exam.sana}, soat ${exam.start_time} da*`;
               
-              bot.sendMessage(u.id, text, { parse_mode: 'Markdown' }).catch(()=>{});
+              bot.sendMessage(u.id || chatId, text, { parse_mode: 'Markdown' }).catch(()=>{});
             }
           });
         });
