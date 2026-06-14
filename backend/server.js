@@ -352,9 +352,7 @@ app.post('/api/search', (req, res) => {
         r.start_time && row.start_time &&
         r.start_time.toString().trim() === row.start_time.toString().trim()
       );
-      // Sort by id to get consistent order number
-      sameRoom.sort((a, b) => a.id.toString().localeCompare(b.id.toString(), undefined, { numeric: true }));
-      const orderInRoom = sameRoom.findIndex(r => r.id.toString().trim().toLowerCase() === queryStr) + 1;
+      const orderInRoom = sameRoom.findIndex(r => r.id && r.id.toString().trim().toLowerCase() === queryStr) + 1;
       return {
         ...row,
         roomStats: {

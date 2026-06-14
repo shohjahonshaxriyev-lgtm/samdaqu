@@ -68,20 +68,18 @@ if (!token) {
 /**
  * Bir xona+sana+vaqt uchun barcha talabalarni topib, tartib raqamini qaytaradi
  */
-function getRoomStats(allData, row, queryId) {
-  const sameRoom = allData.filter(r =>
-    r.auditorya && row.auditorya &&
-    r.auditorya.toString().trim().toLowerCase() === row.auditorya.toString().trim().toLowerCase() &&
-    r.sana && row.sana &&
-    r.sana.toString().trim() === row.sana.toString().trim() &&
-    r.start_time && row.start_time &&
-    r.start_time.toString().trim() === row.start_time.toString().trim()
+function getRoomStats(allData, currentRow, queryId) {
+  const sameRoom = allData.filter(r => 
+    r.auditorya && currentRow.auditorya &&
+    r.auditorya.toString().trim().toLowerCase() === currentRow.auditorya.toString().trim().toLowerCase() && 
+    r.sana && currentRow.sana &&
+    r.sana.toString().trim() === currentRow.sana.toString().trim() && 
+    r.start_time && currentRow.start_time &&
+    r.start_time.toString().trim() === currentRow.start_time.toString().trim()
   );
-  sameRoom.sort((a, b) =>
-    a.id.toString().localeCompare(b.id.toString(), undefined, { numeric: true })
-  );
+
   const orderInRoom = sameRoom.findIndex(
-    r => r.id.toString().trim().toLowerCase() === queryId.toLowerCase()
+    r => r.id && r.id.toString().trim().toLowerCase() === queryId.toString().trim().toLowerCase()
   ) + 1;
   return { totalInRoom: sameRoom.length, orderInRoom };
 }
