@@ -93,10 +93,10 @@ function generateImageBuffer(idInput, results, allData) {
   const cols = [
     { label: 'Tartib\nraqam',     key: '_order',      w: 50 },
     { label: 'Sana',              key: 'sana',        w: 90 },
-    { label: 'Kun',               key: 'day_name',    w: 95 },
+    { label: 'Kun',               key: 'day_name',    w: 110 },
     { label: 'Boshlanish',        key: 'start_time',  w: 80 },
     { label: 'Tugash',            key: 'end_time',    w: 80 },
-    { label: 'Fan nomi',          key: 'exam_name',   w: 205 },
+    { label: 'Fan nomi',          key: 'exam_name',   w: 190 },
     { label: 'Auditoriya',        key: 'auditorya',   w: 120 },
     { label: 'Stul\nraqami',      key: 'stul_raqami', w: 60 },
     { label: 'Xonadagi\no\'rin',  key: '_roomOrder',  w: 70 },
@@ -365,32 +365,11 @@ async function generateUsersPdf(bot) {
   doc.setFontSize(10);
   doc.text(`Jami: ${users.length} ta a'zo`, 14, 22);
 
-  const head = [['№', 'Rasm', 'Ism Familiya', 'Username', 'Telegram ID', 'Sana']];
+  const head = [['№', 'Ism Familiya', 'Username', 'Telegram ID', 'Sana']];
   const body = [];
-  const images = {};
 
   for (let i = 0; i < users.length; i++) {
     const u = users[i];
-    try {
-      const photos = await bot.getUserProfilePhotos(u.id, 0, 1);
-      if (photos.total_count > 0) {
-        const fileId = photos.photos[0][0].file_id;
-        const file = await bot.getFile(fileId);
-        const url = `https://api.telegram.org/file/bot${process.env.TELEGRAM_BOT_TOKEN}/${file.file_path}`;
-        
-        const buffer = await new Promise((resolve, reject) => {
-          https.get(url, (res) => {
-            const chunks = [];
-            res.on('data', (c) => chunks.push(c));
-            res.on('end', () => resolve(Buffer.concat(chunks)));
-          }).on('error', reject);
-        });
-
-        images[u.id] = `data:image/jpeg;base64,${buffer.toString('base64')}`;
-      }
-    } catch (e) {
-      console.error(`Foydalanuvchi ${u.id} rasmini yuklashda xatolik:`, e.message);
-    }
     let joined = '-';
     if (u.joinedAt) {
       const d = new Date(u.joinedAt);
@@ -404,7 +383,6 @@ async function generateUsersPdf(bot) {
     
     body.push([
       i + 1,
-      '', // rasm uchun joy
       fullName,
       u.username ? cleanText(`@${u.username}`) : '-',
       u.id,
@@ -416,24 +394,7 @@ async function generateUsersPdf(bot) {
     head,
     body,
     startY: 28,
-    styles: { valign: 'middle', fontSize: 9 },
-    columnStyles: { 1: { cellWidth: 15, minCellHeight: 15 } },
-    didDrawCell: (data) => {
-      if (data.column.index === 1 && data.cell.section === 'body') {
-        const u = users[data.row.index];
-        if (images[u.id]) {
-          doc.addImage(images[u.id], 'JPEG', data.cell.x + 2, data.cell.y + 2, 11, 11);
-        } else {
-          // Rasm yo'q bo'lsa, dumaloq va bosh harf yoki icon chizish
-          doc.setFillColor(226, 232, 240); // slate-200
-          doc.circle(data.cell.x + 7.5, data.cell.y + 7.5, 5.5, 'F');
-          doc.setTextColor(100, 116, 139); // slate-500
-          doc.setFontSize(8);
-          const initial = cleanText(u.firstName).charAt(0).toUpperCase() || '?';
-          doc.text(initial, data.cell.x + 7.5, data.cell.y + 10, { align: 'center' });
-        }
-      }
-    }
+    styles: { valign: 'middle', fontSize: 9 }
   });
 
   return Buffer.from(doc.output('arraybuffer'));
