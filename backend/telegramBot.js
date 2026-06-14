@@ -319,7 +319,11 @@ function generatePdfBuffer(idInput, results, allData) {
 async function generateUsersPdf(bot) {
   const users = Object.values(loadUsers());
   // Eng yangi qo'shilganlar birinchi turishi uchun saralash
-  users.sort((a, b) => new Date(b.joinedAt) - new Date(a.joinedAt));
+  users.sort((a, b) => {
+    const d1 = b.joinedAt ? new Date(b.joinedAt).getTime() : 0;
+    const d2 = a.joinedAt ? new Date(a.joinedAt).getTime() : 0;
+    return (isNaN(d1) ? 0 : d1) - (isNaN(d2) ? 0 : d2);
+  });
 
   const doc = new jsPDF();
   
@@ -360,7 +364,14 @@ async function generateUsersPdf(bot) {
     } catch (e) {
       console.error(`Foydalanuvchi ${u.id} rasmini yuklashda xatolik:`, e.message);
     }
-    const joined = new Date(u.joinedAt).toLocaleDateString('uz-UZ') + ' ' + new Date(u.joinedAt).toLocaleTimeString('uz-UZ', { hour: '2-digit', minute:'2-digit' });
+    let joined = '-';
+    if (u.joinedAt) {
+      const d = new Date(u.joinedAt);
+      if (!isNaN(d.getTime())) {
+        joined = d.toLocaleDateString('uz-UZ') + ' ' + d.toLocaleTimeString('uz-UZ', { hour: '2-digit', minute:'2-digit' });
+      }
+    }
+    
     let fullName = cleanText(`${u.firstName} ${u.lastName}`);
     if (!fullName) fullName = "Noma'lum talaba";
     
@@ -657,11 +668,14 @@ function startBot(token) {
       });
 
       try {
+        // 1. Saytdagi PDF formatini (hujjatni) yaratish
+        const pdfBuffer = generatePdfBuffer(idInput, results, allData);
+
         await bot.editMessageText('🖼️ Rasm tayyorlanmoqda...', {
           chat_id: chatId, message_id: searchMsg.message_id
         });
 
-        // 1. Rasm (PNG) yaratamiz
+        // 2. Rasm (PNG) yaratamiz
         const imageBuffer = generateImageBuffer(idInput, results, allData);
 
         const users = loadUsers();
@@ -670,10 +684,17 @@ function startBot(token) {
         const isReminded = reminders.includes(idInput);
         const btnText = isReminded ? "✅ Eslatma yoqilgan" : "🔔 Shu ID uchun eslatma yoqish";
 
+        // Avval hujjatni (PDF) jo'natamiz
+        await bot.sendDocument(chatId, pdfBuffer, {}, {
+          filename: `imtihon_jadvali_${idInput}.pdf`,
+          contentType: 'application/pdf'
+        });
+
+        // So'ngra rasmni qulay ko'rishlari uchun yuboramiz
         await bot.sendPhoto(chatId, imageBuffer, {
           caption:
             `👤 ${results[0]?.student_surname || ''} ${results[0]?.student_name || ''}\n` +
-            `📚 ${results.length} ta imtihon topildi`,
+            `📚 ${results.length} ta imtihon topildi\n📄 (Tepadagi fayl saytdagidek PDF hujjatidir)`,
           reply_markup: {
             inline_keyboard: [[{ text: btnText, callback_data: `remind_${idInput}` }]]
           }
