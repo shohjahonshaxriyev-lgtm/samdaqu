@@ -99,8 +99,9 @@ function generateImageBuffer(idInput, results, allData) {
     { label: 'Fan nomi',          key: 'exam_name',   w: 220 },
     { label: 'Auditoriya',        key: 'auditorya',   w: 120 },
     { label: 'Stul\nraqami',      key: 'stul_raqami', w: 60 },
+    { label: 'Xonadagi\no\'rin',  key: '_roomOrder',  w: 70 },
     { label: 'Xonadagi\ntalabalar',key: '_total',     w: 75 },
-    { label: 'Ism Familiya',      key: '_fullname',   w: 180 },
+    { label: 'Ism Familiya',      key: '_fullname',   w: 160 },
   ];
 
   const ROW_H = 36;
@@ -167,11 +168,17 @@ function generateImageBuffer(idInput, results, allData) {
       
       let val = '';
       if (col.key === '_order') val = String(i + 1);
+      else if (col.key === '_roomOrder') val = `${stats.orderInRoom}-chi`;
       else if (col.key === '_total') val = `${stats.totalInRoom} ta`;
       else if (col.key === '_fullname') val = `${row.student_surname || ''} ${row.student_name || ''}`;
       else val = (row[col.key] || '').toString();
 
-      if (col.key === '_total') {
+      if (col.key === '_roomOrder') {
+        ctx.fillStyle = '#dbeafe'; // blue-100
+        ctx.fillRect(cx, ry, col.w, ROW_H);
+        ctx.fillStyle = '#1e40af'; // blue-800
+        ctx.font = 'bold 12px Roboto';
+      } else if (col.key === '_total') {
         ctx.fillStyle = '#d1fae5';
         ctx.fillRect(cx, ry, col.w, ROW_H);
         ctx.fillStyle = '#065f46';
@@ -181,7 +188,7 @@ function generateImageBuffer(idInput, results, allData) {
         ctx.font = '12px Roboto';
       }
 
-      ctx.textAlign = (col.key === '_order' || col.key === 'stul_raqami' || col.key === '_total') ? 'center' : 'left';
+      ctx.textAlign = (col.key === '_order' || col.key === 'stul_raqami' || col.key === '_roomOrder' || col.key === '_total') ? 'center' : 'left';
       
       let text = val;
       const maxWidth = col.w - 12;
@@ -265,6 +272,7 @@ function generatePdfBuffer(idInput, results, allData) {
     'Fan nomi',
     'Auditoriya',
     "Stul\nraqami",
+    'Xonadagi\no\'rin',
     'Xonadagi\ntalabalar',
     'Ism Familiya',
   ];
@@ -280,6 +288,7 @@ function generatePdfBuffer(idInput, results, allData) {
       row.exam_name || '',
       row.auditorya || '',
       row.stul_raqami || '',
+      `${stats.orderInRoom}-chi`,
       `${stats.totalInRoom} ta`,
       `${row.student_surname || ''} ${row.student_name || ''}`,
     ];
@@ -308,10 +317,11 @@ function generatePdfBuffer(idInput, results, allData) {
     alternateRowStyles: { fillColor: [239, 246, 255] },
     columnStyles: {
       0: { cellWidth: 14, halign: 'center' },
-      5: { cellWidth: 55, halign: 'left' },
+      5: { cellWidth: 45, halign: 'left' },
       7: { cellWidth: 14, halign: 'center' }, // Stul
-      8: { cellWidth: 18, fillColor: [209, 250, 229] }, // yashil — jami
-      9: { cellWidth: 43, halign: 'left' },
+      8: { cellWidth: 18, fillColor: [219, 234, 254], halign: 'center' }, // Xonadagi o'rin (blue-100)
+      9: { cellWidth: 18, fillColor: [209, 250, 229], halign: 'center' }, // yashil — jami
+      10: { cellWidth: 35, halign: 'left' },
     },
     styles: { overflow: 'linebreak', cellPadding: 2.5 },
     didDrawPage: (data) => {
