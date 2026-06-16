@@ -6,6 +6,12 @@ import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import xlsx from 'xlsx';
+import dns from 'dns';
+
+// Force Node.js to resolve IPv4 addresses first (fixes ENETUNREACH on IPv6-less hosts like Render)
+if (dns.setDefaultResultOrder) {
+  dns.setDefaultResultOrder('ipv4first');
+}
 
 // Load environment variables from root .env
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
