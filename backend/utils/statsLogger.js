@@ -55,20 +55,9 @@ export function logSearch(query, foundCount) {
       stats.failedSearches += 1;
     }
 
-    // Add to last searches (max 10)
-    stats.lastSearches.unshift({
-      query,
-      timestamp: new Date().toISOString(),
-      foundCount
-    });
-    if (stats.lastSearches.length > 10) {
-      stats.lastSearches.pop();
-    }
-
-    // Track popular queries
-    if (foundCount > 0) {
-      stats.popularSearches[query] = (stats.popularSearches[query] || 0) + 1;
-    }
+    // Xotirani to'ldirmaslik uchun tarix saqlanmaydi
+    stats.lastSearches = [];
+    stats.popularSearches = {};
 
     saveStats(stats);
   } catch (error) {

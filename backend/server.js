@@ -89,12 +89,10 @@ function logSearch(query, foundCount) {
     if (foundCount > 0) stats.successfulSearches += 1;
     else stats.failedSearches += 1;
 
-    stats.lastSearches.unshift({ query, timestamp: new Date().toISOString(), foundCount });
-    if (stats.lastSearches.length > 10) stats.lastSearches.pop();
+    // Xotirani to'ldirmaslik uchun tarix saqlanmaydi
+    stats.lastSearches = [];
+    stats.popularSearches = {};
 
-    if (foundCount > 0) {
-      stats.popularSearches[query] = (stats.popularSearches[query] || 0) + 1;
-    }
     saveStats(stats);
   } catch (error) {}
 }
