@@ -25,6 +25,12 @@ const pool = new Pool({
   connectionString: connectionString || undefined,
   ssl: connectionString ? { rejectUnauthorized: false } : false,
   connectionTimeoutMillis: 10000,
+  // Ulanishlarni issiq saqlash (har safar yangi ulanish ochmaslik uchun)
+  min: 2,
+  max: 10,
+  idleTimeoutMillis: 60000,
+  keepAlive: true,
+  keepAliveInitialDelayMillis: 10000,
 });
 
 export const query = (text, params) => pool.query(text, params);

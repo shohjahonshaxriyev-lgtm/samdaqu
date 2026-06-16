@@ -20,7 +20,7 @@ function loadUsers() {
   return cachedUsers;
 }
 
-async function saveUser(msg) {
+function saveUser(msg) {
   try {
     if (!msg.from || msg.from.is_bot) return;
     const id = msg.from.id.toString();
@@ -33,7 +33,8 @@ async function saveUser(msg) {
         joinedAt: new Date().toISOString()
       };
       cachedUsers[id] = u;
-      await saveDbUser(u);
+      // Bazaga fonda yozish (bot javobini kechiktirmaslik uchun)
+      saveDbUser(u).catch(err => console.error("Foydalanuvchini saqlashda xatolik:", err.message));
     }
   } catch (err) {
     console.error("Foydalanuvchini saqlashda xatolik:", err.message);
@@ -44,9 +45,10 @@ function loadSettings() {
   return cachedSettings;
 }
 
-async function saveSettings(data) {
+function saveSettings(data) {
   cachedSettings = data;
-  await saveDbSettings(data);
+  // Bazaga fonda yozish
+  saveDbSettings(data).catch(err => console.error("Sozlamalarni saqlashda xatolik:", err.message));
 }
 
 async function refreshBotCache() {
