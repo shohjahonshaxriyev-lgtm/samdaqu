@@ -20,14 +20,23 @@ const { Pool } = pg;
 let connectionString = process.env.DATABASE_URL || '';
 
 // Auto-convert direct Supabase connection to pooler connection
-// Direct: db.<project-ref>.supabase.co:5432
-// Pooler: aws-0-<region>.pooler.supabase.com:6543
-// The pooler hostname resolves to IPv4, avoiding ENETUNREACH
+// Direct: postgres@db.<project-ref>.supabase.co:5432
+// Pooler: postgres.<project-ref>@aws-0-<region>.pooler.supabase.com:6543
+// The pooler requires the project ref in the username (tenant identifier)
 if (connectionString.includes('.supabase.co')) {
-  connectionString = connectionString
-    .replace(/db\.[a-z0-9]+\.supabase\.co/, 'aws-0-eu-central-1.pooler.supabase.com')
-    .replace(':5432/', ':6543/');
-  console.log('🔄 Supabase pooler manziliga o\'tkazildi (IPv4)');
+  // Extract project ref from hostname (e.g., "ghlelarhnewsdxzohdou" from "db.ghlelarhnewsdxzohdou.supabase.co")
+  const projectRefMatch = connectionString.match(/db\.([a-z0-9]+)\.supabase\.co/);
+  if (projectRefMatch) {
+    const projectRef = projectRefMatch[1];
+    connectionString = connectionString
+      // Change username: postgres -> postgres.PROJECT_REF (required by Supavisor)
+      .replace(/\/\/postgres:/, `//postgres.${projectRef}:`)
+      // Change hostname: db.xxx.supabase.co -> aws-0-eu-central-1.pooler.supabase.com
+      .replace(/db\.[a-z0-9]+\.supabase\.co/, 'aws-0-eu-central-1.pooler.supabase.com')
+      // Change port: 5432 -> 6543
+      .replace(':5432/', ':6543/');
+    console.log(`🔄 Supabase pooler manziliga o'tkazildi (project: ${projectRef})`);
+  }
 }
 
 console.log('🔗 DB ulanish:', connectionString ? connectionString.replace(/:[^:@]+@/, ':***@') : 'NOT SET');
