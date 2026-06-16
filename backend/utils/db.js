@@ -1,3 +1,12 @@
+import dns from 'dns';
+
+// Force IPv4 resolution BEFORE any network connections are made
+// Supabase direct hostnames often only have AAAA (IPv6) records,
+// which fail on hosts like Render that don't support IPv6 outbound.
+if (dns.setDefaultResultOrder) {
+  dns.setDefaultResultOrder('ipv4first');
+}
+
 import pg from 'pg';
 import dotenv from 'dotenv';
 import path from 'path';
@@ -8,11 +17,26 @@ dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
 const { Pool } = pg;
 
-const connectionString = process.env.DATABASE_URL;
+let connectionString = process.env.DATABASE_URL || '';
+
+// Auto-convert direct Supabase connection to pooler connection
+// Direct: db.<project-ref>.supabase.co:5432
+// Pooler: aws-0-<region>.pooler.supabase.com:6543
+// The pooler hostname resolves to IPv4, avoiding ENETUNREACH
+if (connectionString.includes('.supabase.co')) {
+  connectionString = connectionString
+    .replace(/db\.[a-z0-9]+\.supabase\.co/, 'aws-0-eu-central-1.pooler.supabase.com')
+    .replace(':5432/', ':6543/');
+  console.log('🔄 Supabase pooler manziliga o\'tkazildi (IPv4)');
+}
+
+console.log('🔗 DB ulanish:', connectionString ? connectionString.replace(/:[^:@]+@/, ':***@') : 'NOT SET');
 
 const pool = new Pool({
-  connectionString,
-  ssl: connectionString ? { rejectUnauthorized: false } : false
+  connectionString: connectionString || undefined,
+  ssl: connectionString ? { rejectUnauthorized: false } : false,
+  // Force IPv4 connections
+  connectionTimeoutMillis: 10000,
 });
 
 export const query = (text, params) => pool.query(text, params);
