@@ -238,7 +238,125 @@ function generateImageBuffer(idInput, results, allData) {
   return canvas.toBuffer('image/png');
 }
 
+function generateRoommatesImageBuffer(targetExam, roommates) {
+  const cols = [
+    { label: 'T/R',               key: '_order',       w: 50 },
+    { label: 'Talaba ID',         key: 'id',           w: 90 },
+    { label: 'F.I.SH',            key: '_fullname',    w: 260 },
+    { label: 'Stul raqami',       key: 'stul_raqami',  w: 100 },
+  ];
 
+  const ROW_H = 34;
+  const HEADER_H = 46;
+  const TOP_BANNER = 100;
+  const PAD = 20;
+  const totalW = cols.reduce((s, c) => s + c.w, 0) + PAD * 2;
+  const totalH = TOP_BANNER + HEADER_H + ROW_H * roommates.length + PAD + 28;
+
+  const SCALE = 3;
+  const canvas = createCanvas(totalW * SCALE, totalH * SCALE);
+  const ctx = canvas.getContext('2d');
+  ctx.scale(SCALE, SCALE);
+
+  // Background
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, totalW, totalH);
+
+  // Blue header banner
+  ctx.fillStyle = '#1e3a8a';
+  ctx.beginPath();
+  ctx.roundRect(PAD, 15, totalW - PAD * 2, 70, 6);
+  ctx.fill();
+
+  // Banner title
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 16px Roboto';
+  ctx.fillText('XONADAGI TALABALAR RO\'YXATI', PAD + 15, 38);
+  ctx.font = '11px Roboto';
+  ctx.fillText(`Xona: ${targetExam.auditorya || 'Noma\'lum'}  |  Fan: ${targetExam.exam_name || 'Noma\'lum'}`, PAD + 15, 54);
+  ctx.fillText(`Vaqt: ${targetExam.sana || ''}, soat ${targetExam.start_time || ''}  |  Jami talabalar: ${roommates.length} ta`, PAD + 15, 70);
+
+  // Table header
+  ctx.fillStyle = '#2563eb';
+  ctx.fillRect(PAD, TOP_BANNER, totalW - PAD * 2, HEADER_H);
+
+  // Header labels
+  let xCur = PAD;
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 11px Roboto';
+  ctx.textAlign = 'center';
+  for (const col of cols) {
+    ctx.fillText(col.label, xCur + col.w / 2, TOP_BANNER + HEADER_H / 2 + 4);
+    xCur += col.w;
+  }
+  ctx.textAlign = 'left';
+
+  // Data rows
+  roommates.forEach((row, i) => {
+    const ry = TOP_BANNER + HEADER_H + i * ROW_H;
+    ctx.fillStyle = i % 2 === 0 ? '#ffffff' : '#f8fafc';
+    ctx.fillRect(PAD, ry, totalW - PAD * 2, ROW_H);
+
+    let cx = PAD;
+    for (let ci = 0; ci < cols.length; ci++) {
+      const col = cols[ci];
+      let val = '';
+      if (col.key === '_order') val = String(i + 1);
+      else if (col.key === '_fullname') val = `${row.student_surname || ''} ${row.student_name || ''}`.trim();
+      else val = (row[col.key] || '').toString();
+
+      ctx.fillStyle = '#1e293b';
+      ctx.font = '12px Roboto';
+      ctx.textAlign = (col.key === '_order' || col.key === 'stul_raqami' || col.key === 'id') ? 'center' : 'left';
+
+      let text = val;
+      const maxWidth = col.w - 12;
+      if (ctx.measureText(text).width > maxWidth && ctx.textAlign === 'left') {
+        while (text.length > 0 && ctx.measureText(text + '…').width > maxWidth) {
+          text = text.slice(0, -1);
+        }
+        text += '…';
+      }
+
+      const textX = ctx.textAlign === 'center' ? cx + col.w / 2 : cx + 6;
+      ctx.fillText(text, textX, ry + ROW_H / 2 + 4);
+      cx += col.w;
+    }
+
+    // Row border
+    ctx.strokeStyle = '#e2e8f0';
+    ctx.lineWidth = 0.7;
+    ctx.beginPath();
+    ctx.moveTo(PAD, ry + ROW_H);
+    ctx.lineTo(totalW - PAD, ry + ROW_H);
+    ctx.stroke();
+  });
+
+  // Vertical lines
+  let vx = PAD;
+  for (const col of cols) {
+    ctx.strokeStyle = '#cbd5e1';
+    ctx.lineWidth = 0.4;
+    ctx.beginPath();
+    ctx.moveTo(vx, TOP_BANNER);
+    ctx.lineTo(vx, totalH - 28);
+    ctx.stroke();
+    vx += col.w;
+  }
+  // Last line
+  ctx.beginPath();
+  ctx.moveTo(vx, TOP_BANNER);
+  ctx.lineTo(vx, totalH - 28);
+  ctx.stroke();
+
+  // Footer
+  ctx.fillStyle = '#9ca3af';
+  ctx.font = '10px Roboto';
+  ctx.textAlign = 'left';
+  ctx.fillText('@samdaqu_jadvalbot | SDTU', PAD, totalH - 9);
+
+  return canvas.toBuffer('image/png');
+}
 
 /**
  * Saytdagi PDF bilan bir xil format: ko'k header, tartib raqam, xonadagi o'rin va jami ustunlari
@@ -485,37 +603,84 @@ function startBot(token) {
         bot.deleteMessage(chatId, query.message.message_id).catch(()=>{});
         bot.sendMessage(chatId, "✅ Majburiy obuna o'chirilgan. ID raqamingizni yuborishingiz mumkin.");
       }
-    } else if (data.startsWith('remind_')) {
-      const targetId = data.split('_')[1];
-      const users = loadUsers();
-      if (!users[chatId.toString()]) {
-        users[chatId.toString()] = { id: chatId.toString(), reminders: [] };
+    } else if (data.startsWith('showrooms_')) {
+      const idInput = data.split('_')[1];
+      const allData = loadData();
+      if (!allData) {
+        bot.sendMessage(chatId, "⚠️ Xatolik: Imtihon ma'lumotlari topilmadi.");
+        return;
       }
-      const u = users[chatId.toString()];
-      
-      if (!u.reminders) u.reminders = [];
-      if (u.reminders.includes(targetId)) {
-        u.reminders = u.reminders.filter(id => id !== targetId);
-        bot.answerCallbackQuery(query.id, { text: `🔕 Eslatma o'chirildi (${targetId})` });
-      } else {
-        u.reminders.push(targetId);
-        bot.answerCallbackQuery(query.id, { text: `🔔 Eslatma muvaffaqiyatli yoqildi!\n(${targetId} uchun imtihondan 24 soat va 2 soat oldin xabar beraman)`, show_alert: true });
-      }
-      fs.writeFileSync(path.join(__dirname, 'users.json'), JSON.stringify(users, null, 2));
+      const queryStr = idInput.trim().toLowerCase();
+      const results = allData.filter(row => row.id && row.id.toString().trim().toLowerCase() === queryStr);
 
-      // Update inline keyboard text
-      const isReminded = u.reminders.includes(targetId);
-        const btnText = isReminded ? "✅ Eslatma yoqilgan" : "🔔 Shu ID uchun eslatma yoqish";
-        
-        bot.editMessageReplyMarkup({
-          inline_keyboard: [[{ text: btnText, callback_data: `remind_${targetId}` }]]
-        }, {
-          chat_id: chatId,
-          message_id: query.message.message_id
-        }).catch(()=>{});
+      if (results.length === 0) {
+        bot.sendMessage(chatId, "⚠️ Siz uchun imtihonlar topilmadi.");
+        return;
+      }
+
+      // Har bir imtihon uchun bittadan inline tugma yaratamiz
+      const buttons = results.map((exam, index) => {
+        const text = `🏫 ${exam.auditorya || 'Noma\'lum'} - ${exam.exam_name || 'Noma\'lum'} (${exam.start_time || ''})`;
+        return [{ text: text, callback_data: `viewroom_${idInput}_${index}` }];
+      });
+
+      bot.sendMessage(chatId, "🏢 Xonadoshlarni ko'rmoqchi bo'lgan xonani tanlang:", {
+        reply_markup: {
+          inline_keyboard: buttons
+        }
+      });
+    } else if (data.startsWith('viewroom_')) {
+      const parts = data.split('_');
+      const idInput = parts[1];
+      const examIndex = parseInt(parts[2], 10);
+      
+      const allData = loadData();
+      if (!allData) {
+        bot.sendMessage(chatId, "⚠️ Xatolik: Imtihon ma'lumotlari topilmadi.");
+        return;
+      }
+      const queryStr = idInput.trim().toLowerCase();
+      const studentExams = allData.filter(row => row.id && row.id.toString().trim().toLowerCase() === queryStr);
+      
+      if (studentExams.length === 0 || !studentExams[examIndex]) {
+        bot.sendMessage(chatId, "⚠️ Imtihon ma'lumotlari topilmadi.");
+        return;
+      }
+      
+      const targetExam = studentExams[examIndex];
+      
+      // Xonadagi barcha talabalarni topish
+      const roommates = allData.filter(r =>
+        r.auditorya && targetExam.auditorya &&
+        r.auditorya.toString().trim().toLowerCase() === targetExam.auditorya.toString().trim().toLowerCase() &&
+        r.sana && targetExam.sana &&
+        r.sana.toString().trim() === targetExam.sana.toString().trim() &&
+        r.start_time && targetExam.start_time &&
+        r.start_time.toString().trim() === targetExam.start_time.toString().trim()
+      );
+      
+      bot.sendMessage(chatId, `⏳ *${targetExam.auditorya}* xonadagi talabalar ro'yxati chizilmoqda...`, { parse_mode: 'Markdown' })
+        .then(async (waitMsg) => {
+          try {
+            const imageBuffer = generateRoommatesImageBuffer(targetExam, roommates);
+            await bot.sendPhoto(chatId, imageBuffer, {
+              caption: `🏫 *Xona:* ${targetExam.auditorya}\n📚 *Fan:* ${targetExam.exam_name}\n🕒 *Vaqt:* ${targetExam.sana}, soat ${targetExam.start_time}\n👥 *Jami talabalar:* ${roommates.length} ta`
+            }, {
+              filename: `roommates_${targetExam.auditorya}.png`,
+              contentType: 'image/png'
+            });
+            bot.deleteMessage(chatId, waitMsg.message_id).catch(() => {});
+          } catch (err) {
+            console.error(err);
+            bot.editMessageText("⚠️ Rasm chizishda xatolik yuz berdi.", {
+              chat_id: chatId,
+              message_id: waitMsg.message_id
+            });
+          }
+        });
     }
     
-    if (data !== 'check_sub' && !data.startsWith('remind_')) {
+    if (data !== 'check_sub') {
       bot.answerCallbackQuery(query.id);
     }
   });
@@ -658,18 +823,14 @@ function startBot(token) {
       try {
         const imageBuffer = generateImageBuffer(idInput, results, allData);
 
-        const users = loadUsers();
-        const user = users[chatId.toString()] || {};
-        const reminders = user.reminders || [];
-        const isReminded = reminders.includes(idInput);
-        const btnText = isReminded ? "✅ Eslatma yoqilgan" : "🔔 Shu ID uchun eslatma yoqish";
-
         await bot.sendPhoto(chatId, imageBuffer, {
           caption:
             `👤 ${results[0]?.student_surname || ''} ${results[0]?.student_name || ''}\n` +
             `📚 ${results.length} ta imtihon topildi`,
           reply_markup: {
-            inline_keyboard: [[{ text: btnText, callback_data: `remind_${idInput}` }]]
+            inline_keyboard: [
+              [{ text: "👥 Xonadoshlarni ko'rish", callback_data: `showrooms_${idInput}` }]
+            ]
           }
         }, {
           filename: `imtihon_${idInput}.png`,
@@ -695,58 +856,7 @@ function startBot(token) {
       }
   });
 
-  // Background Task: Har 10 daqiqada eslatmalarni tekshirish
-  setInterval(() => {
-    try {
-      const allData = loadData();
-      if (!allData || allData.length === 0) return;
-
-      const users = loadUsers();
-      const now = new Date();
-
-      Object.values(users).forEach(u => {
-        if (!u.reminders || u.reminders.length === 0) return;
-
-        u.reminders.forEach(targetId => {
-          const exams = allData.filter(r => r.id && r.id.toString().trim().toLowerCase() === targetId.toLowerCase());
-          
-          exams.forEach(exam => {
-            if (!exam.sana || !exam.start_time) return;
-            // Parse sana: DD.MM.YYYY
-            const parts = exam.sana.split('.');
-            if (parts.length !== 3) return;
-            const [day, month, year] = parts.map(Number);
-            
-            // Parse start_time: HH:MM
-            const timeParts = exam.start_time.split(':');
-            if (timeParts.length !== 2) return;
-            const [hour, minute] = timeParts.map(Number);
-
-            const examDate = new Date(year, month - 1, day, hour, minute);
-            const diffMs = examDate.getTime() - now.getTime();
-            const diffMins = Math.floor(diffMs / 60000);
-
-            // Imtihonga 24 soat (1440 min) va 2 soat (120 min) qolganda jo'natamiz
-            const is24Hours = diffMins > 1430 && diffMins <= 1440;
-            const is2Hours = diffMins > 110 && diffMins <= 120;
-
-            if (is24Hours || is2Hours) {
-              const timeStr = is24Hours ? "1 kun" : "2 soat";
-              const text = `⏰ *ESLATMA: Imtihonga ${timeStr} qoldi!*\n\n` +
-                           `👤 Talaba ID: ${targetId}\n` +
-                           `📚 Fan: *${exam.exam_name}*\n` +
-                           `🚪 Auditoriya: *${exam.auditorya}*\n` +
-                           `🕒 Boshlanish vaqti: *${exam.sana}, soat ${exam.start_time} da*`;
-              
-              bot.sendMessage(u.id || chatId, text, { parse_mode: 'Markdown' }).catch(()=>{});
-            }
-          });
-        });
-      });
-    } catch (e) {
-      console.error("Eslatma tekshirishda xatolik:", e);
-    }
-  }, 10 * 60 * 1000); // Har 10 daqiqada
+  // Eslatma tizimi foydalanuvchi talabi bilan o'chirildi
 
   console.log('✅ Telegram bot ishga tushdi.');
 }
