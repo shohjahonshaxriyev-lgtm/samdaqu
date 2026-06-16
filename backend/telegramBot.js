@@ -4,7 +4,7 @@ import { loadData } from './server.js';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { createCanvas, GlobalFonts } from '@napi-rs/canvas';
-import { getDbUsers, saveDbUser, getDbSettings, saveDbSettings } from './utils/db.js';
+import { getDbUsers, saveDbUser, getDbSettings, saveDbSettings, initDB } from './utils/db.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
@@ -526,6 +526,8 @@ async function generateUsersPdf(bot) {
 }
 
 async function startBot(token) {
+  // Jadvallar yaratilganini ta'minlash (server.js dan oldin ishga tushishi mumkin)
+  await initDB();
   await refreshBotCache();
   const bot = new TelegramBot(token, { polling: true });
   const adminState = new Map();
