@@ -13,6 +13,7 @@ dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
 // Load Telegram bot after environment variables are set
 import('./telegramBot.js').catch(err => console.error('Failed to load Telegram bot:', err));
+import { initDB, query, getDbSettings, saveDbSettings, saveDbExams } from './utils/db.js';
 const UPLOADS_DIR = path.join(__dirname, 'uploads');
 const PORT = process.env.PORT || 5000;
 
@@ -23,13 +24,20 @@ const STATS_FILE = path.join(__dirname, 'data', 'stats.json');
 const SETTINGS_FILE = path.join(__dirname, 'settings.json');
 const COLUMN_MAPPING_FILE = path.join(__dirname, 'data', 'column-mapping.json');
 
+let cachedSettings = {};
+
 function loadSettings() {
-  if (!fs.existsSync(SETTINGS_FILE)) return {};
-  return JSON.parse(fs.readFileSync(SETTINGS_FILE, 'utf8'));
+  return cachedSettings;
 }
 
-function saveSettings(data) {
-  fs.writeFileSync(SETTINGS_FILE, JSON.stringify(data, null, 2));
+async function saveSettings(data) {
+  cachedSettings = data;
+  await saveDbSettings(data);
+}
+
+async function refreshSettings() {
+  cachedSettings = await getDbSettings();
+  return cachedSettings;
 }
 
 function loadColumnMapping() {
@@ -240,24 +248,60 @@ const upload = multer({
 // IN-MEMORY CACHE - Excel faylni faqat 1 marta o'qiydi
 // ==========================================
 let cachedData = null;
-let cachedFileName = null;
+let cachedFileName = "PostgreSQL Database";
 
 function loadData() {
-  const activeFile = getActiveExcelPath(UPLOADS_DIR);
-  if (!activeFile) { cachedData = null; cachedFileName = null; return null; }
-  const currentName = path.basename(activeFile);
-  if (cachedData && cachedFileName === currentName) return cachedData;
-  cachedData = readExcelFile(activeFile);
-  cachedFileName = currentName;
-  console.log(`Excel yuklandi va xotiraga saqlandi: ${currentName} (${cachedData.length} qator)`);
   return cachedData;
 }
 
-// Server ishga tushganda darhol yuklash
-loadData();
+async function refreshData() {
+  if (!process.env.DATABASE_URL) {
+    console.warn("⚠️ DATABASE_URL topilmadi. refreshData bekor qilindi.");
+    return null;
+  }
+  try {
+    const res = await query("SELECT * FROM exams");
+    cachedData = res.rows.map(row => {
+      let extra = {};
+      if (row.extra) {
+        try {
+          extra = JSON.parse(row.extra);
+        } catch(e){}
+      }
+      return {
+        ...row,
+        extra
+      };
+    });
+    
+    const activeFile = getActiveExcelPath(UPLOADS_DIR);
+    if (activeFile) {
+      cachedFileName = path.basename(activeFile);
+    } else {
+      cachedFileName = "PostgreSQL Database";
+    }
 
-app.listen(PORT, '0.0.0.0', () => console.log(`Server listening on http://0.0.0.0:${PORT}`));
-export { loadData, getActiveExcelPath, readExcelFile };
+    console.log(`Excel yuklandi va xotiraga saqlandi: ${cachedFileName} (${cachedData ? cachedData.length : 0} qator)`);
+    return cachedData;
+  } catch (e) {
+    console.error("Bazadan jadvallarni o'qishda xatolik:", e);
+    return null;
+  }
+}
+
+async function startServer() {
+  try {
+    await initDB();
+    await refreshSettings();
+    await refreshData();
+  } catch (e) {
+    console.error("Server ishga tushishida bazada xatolik:", e);
+  }
+  app.listen(PORT, '0.0.0.0', () => console.log(`Server listening on http://0.0.0.0:${PORT}`));
+}
+startServer();
+
+export { loadData, refreshData, getActiveExcelPath, readExcelFile };
 
 app.get('/api/stats', (req, res) => {
   try {
@@ -301,7 +345,7 @@ app.get('/api/column-mapping', (req, res) => {
   }
 });
 
-app.post('/api/column-mapping', (req, res) => {
+app.post('/api/column-mapping', async (req, res) => {
   try {
     const mapping = req.body;
     // Faqat bo'sh bo'lmagan qiymatlarni saqlash
@@ -310,20 +354,28 @@ app.post('/api/column-mapping', (req, res) => {
       if (value && value.trim()) cleaned[key] = value.trim();
     });
     saveColumnMapping(cleaned);
-    // Mapping o'zgarganda cache'ni tozalash — keyingi qidiruvda qayta yuklanadi
-    cachedData = null;
-    cachedFileName = null;
-    loadData();
+    
+    // Column mapping o'zgarganda bazadagi ma'lumotlarni qayta o'qib yozishimiz kerak
+    const activeFile = getActiveExcelPath(UPLOADS_DIR);
+    if (activeFile) {
+      try {
+        const parsedData = readExcelFile(activeFile);
+        await saveDbExams(parsedData);
+      } catch (e) {
+        console.error("Re-parsing excel error:", e);
+      }
+    }
+    await refreshData();
     res.json({ message: 'Ustun sozlamalari saqlandi', mapping: cleaned });
   } catch (error) {
     res.status(500).json({ error: 'Saqlashda xatolik' });
   }
 });
 
-app.post('/api/settings', (req, res) => {
+app.post('/api/settings', async (req, res) => {
   try {
     const newSettings = { ...loadSettings(), ...req.body };
-    saveSettings(newSettings);
+    await saveSettings(newSettings);
     res.json({ message: 'Saqlandi', settings: newSettings });
   } catch (error) {
     res.status(500).json({ error: 'Saqlashda xatolik' });
@@ -366,18 +418,18 @@ app.post('/api/search', (req, res) => {
   }
 });
 
-app.post('/api/upload', upload.single('excelFile'), (req, res) => {
+app.post('/api/upload', upload.single('excelFile'), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'Fayl yuklanmadi' });
     const filePath = req.file.path;
     try {
       const data = readExcelFile(filePath);
-      // Yangi fayl yuklanganda cache yangilanadi
-      cachedData = data;
-      cachedFileName = req.file.filename;
+      await saveDbExams(data);
+      await refreshData();
       res.json({ message: 'Yuklandi', fileName: req.file.filename, totalRows: data.length });
     } catch (e) {
-      fs.unlinkSync(filePath);
+      console.error(e);
+      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
       res.status(400).json({ error: 'Excel oqilmadi' });
     }
   } catch (error) {
@@ -385,14 +437,11 @@ app.post('/api/upload', upload.single('excelFile'), (req, res) => {
   }
 });
 
-app.delete('/api/upload', (req, res) => {
+app.delete('/api/upload', async (req, res) => {
   try {
     const activeFile = getActiveExcelPath(UPLOADS_DIR);
-    if (!activeFile) {
-      return res.status(404).json({ error: 'O`chirish uchun fayl topilmadi' });
-    }
     
-    // Hamma fayllarni o'chirish (agar eski fayllar ham bo'lsa tozalab yuboramiz)
+    // Hamma fayllarni o'chirish
     const files = fs.readdirSync(UPLOADS_DIR);
     files.forEach(file => {
       if (file.endsWith('.xlsx') || file.endsWith('.xls')) {
@@ -400,9 +449,9 @@ app.delete('/api/upload', (req, res) => {
       }
     });
 
-    // Cache'ni tozalash
-    cachedData = null;
-    cachedFileName = null;
+    // Bazadagi imtihonlarni tozalash
+    await saveDbExams([]);
+    await refreshData();
 
     res.json({ message: 'Excel ma`lumotlari muvaffaqiyatli o`chirildi' });
   } catch (error) {

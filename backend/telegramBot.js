@@ -4,6 +4,7 @@ import { loadData } from './server.js';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { createCanvas, GlobalFonts } from '@napi-rs/canvas';
+import { getDbUsers, saveDbUser, getDbSettings, saveDbSettings } from './utils/db.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
@@ -12,42 +13,50 @@ import https from 'https';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const USERS_FILE = path.join(__dirname, 'users.json');
+let cachedUsers = {};
+let cachedSettings = {};
 
 function loadUsers() {
-  if (!fs.existsSync(USERS_FILE)) return {};
-  return JSON.parse(fs.readFileSync(USERS_FILE, 'utf8'));
+  return cachedUsers;
 }
 
-function saveUser(msg) {
+async function saveUser(msg) {
   try {
     if (!msg.from || msg.from.is_bot) return;
-    const users = loadUsers();
     const id = msg.from.id.toString();
-    if (!users[id]) {
-      users[id] = {
+    if (!cachedUsers[id]) {
+      const u = {
         id,
         firstName: msg.from.first_name || '',
         lastName: msg.from.last_name || '',
         username: msg.from.username || '',
         joinedAt: new Date().toISOString()
       };
-      fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
+      cachedUsers[id] = u;
+      await saveDbUser(u);
     }
   } catch (err) {
     console.error("Foydalanuvchini saqlashda xatolik:", err.message);
   }
 }
 
-const SETTINGS_FILE = path.join(__dirname, 'settings.json');
-
 function loadSettings() {
-  if (!fs.existsSync(SETTINGS_FILE)) return {};
-  return JSON.parse(fs.readFileSync(SETTINGS_FILE, 'utf8'));
+  return cachedSettings;
 }
 
-function saveSettings(data) {
-  fs.writeFileSync(SETTINGS_FILE, JSON.stringify(data, null, 2));
+async function saveSettings(data) {
+  cachedSettings = data;
+  await saveDbSettings(data);
+}
+
+async function refreshBotCache() {
+  try {
+    cachedUsers = await getDbUsers();
+    cachedSettings = await getDbSettings();
+    console.log(`✅ Bot xotirasi yangilandi. ${Object.keys(cachedUsers).length} ta foydalanuvchi yuklandi.`);
+  } catch(e) {
+    console.error("Bot xotirasini yangilashda xatolik:", e);
+  }
 }
 
 // Shriftni yuklash (Linux/Windows da matn buzilmasligi uchun)
@@ -516,7 +525,8 @@ async function generateUsersPdf(bot) {
   return Buffer.from(doc.output('arraybuffer'));
 }
 
-function startBot(token) {
+async function startBot(token) {
+  await refreshBotCache();
   const bot = new TelegramBot(token, { polling: true });
   const adminState = new Map();
 
@@ -738,13 +748,13 @@ function startBot(token) {
       }
       const settings = loadSettings();
       if (text === '0') {
-         settings.sponsorChannel = '0';
-         saveSettings(settings);
-         bot.sendMessage(chatId, "✅ Majburiy obuna o'chirildi.");
+          settings.sponsorChannel = '0';
+          await saveSettings(settings);
+          bot.sendMessage(chatId, "✅ Majburiy obuna o'chirildi.");
       } else {
-         settings.sponsorChannel = text;
-         saveSettings(settings);
-         bot.sendMessage(chatId, `✅ Homiy kanal muvaffaqiyatli o'rnatildi: ${text}\n\nEslatma: Bot shu kanalda admin ekanligini unutmang!`);
+          settings.sponsorChannel = text;
+          await saveSettings(settings);
+          bot.sendMessage(chatId, `✅ Homiy kanal muvaffaqiyatli o'rnatildi: ${text}\n\nEslatma: Bot shu kanalda admin ekanligini unutmang!`);
       }
       return;
     }
