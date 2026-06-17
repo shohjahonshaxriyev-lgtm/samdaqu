@@ -733,7 +733,7 @@ async function startBot(token) {
       let fail = 0;
       for (const u of users) {
         try {
-          await bot.copyMessage(u.id, chatId, msg.message_id);
+         await bot.forwardMessage(u.id, chatId, msg.message_id);
           success++;
         } catch (e) {
           fail++;
