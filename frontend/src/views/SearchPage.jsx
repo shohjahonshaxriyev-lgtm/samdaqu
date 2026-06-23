@@ -192,8 +192,6 @@ useEffect(() => {
     >
       {/* Hero Section */}
       <div className="text-center my-8 md:my-12 relative">
-        {/* Glow behind title */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80%] h-[120%] bg-blue-500/10 dark:bg-blue-500/20 blur-[60px] rounded-full pointer-events-none" />
         
         <motion.div 
           initial={{ scale: 0.9, opacity: 0 }}
