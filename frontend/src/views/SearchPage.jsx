@@ -193,7 +193,7 @@ useEffect(() => {
       {/* Hero Section */}
       <div className="text-center my-8 md:my-12 relative">
         <h2 className="text-4xl md:text-5xl font-extrabold tracking-tight leading-tight mb-4 text-slate-800 dark:text-slate-100">
-          <span className="bg-gradient-royal bg-clip-text text-transparent pb-1">SDTU Imtihon</span>
+          <span className="text-blue-600 dark:text-blue-400 pb-1">SDTU Imtihon</span>
           <br className="md:hidden" /> Jadvallari
         </h2>
         <p className="text-sm md:text-base text-slate-500 dark:text-slate-400 mt-2 max-w-lg mx-auto mb-6 leading-relaxed font-medium">
