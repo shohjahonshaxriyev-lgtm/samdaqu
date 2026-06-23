@@ -192,17 +192,6 @@ useEffect(() => {
     >
       {/* Hero Section */}
       <div className="text-center my-8 md:my-12 relative">
-        
-        <motion.div 
-          initial={{ scale: 0.9, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ delay: 0.1 }}
-          className="inline-flex items-center justify-center gap-1.5 px-4 py-1.5 rounded-full bg-blue-50/80 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-xs font-bold mb-6 border border-blue-100/50 dark:border-blue-800/50 shadow-sm backdrop-blur-md"
-        >
-          <Sparkles size={14} className="animate-pulse" />
-          <span>SDTU 2026 Semestr Imtihonlari</span>
-        </motion.div>
-
         <h2 className="text-4xl md:text-5xl font-extrabold tracking-tight leading-tight mb-4 text-slate-800 dark:text-slate-100">
           <span className="bg-gradient-royal bg-clip-text text-transparent pb-1">SDTU Imtihon</span>
           <br className="md:hidden" /> Jadvallari
