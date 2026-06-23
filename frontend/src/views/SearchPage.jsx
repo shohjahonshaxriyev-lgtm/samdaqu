@@ -191,43 +191,54 @@ useEffect(() => {
       className="w-full max-w-[1600px] mx-auto px-4 md:px-8 py-6 pb-24 md:pb-8"
     >
       {/* Hero Section */}
-      <div className="text-center my-6 md:my-10">
+      <div className="text-center my-8 md:my-12 relative">
+        {/* Glow behind title */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80%] h-[120%] bg-blue-500/10 dark:bg-blue-500/20 blur-[60px] rounded-full pointer-events-none" />
+        
+        <motion.div 
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ delay: 0.1 }}
+          className="inline-flex items-center justify-center gap-1.5 px-4 py-1.5 rounded-full bg-blue-50/80 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-xs font-bold mb-6 border border-blue-100/50 dark:border-blue-800/50 shadow-sm backdrop-blur-md"
+        >
+          <Sparkles size={14} className="animate-pulse" />
+          <span>SDTU 2026 Semestr Imtihonlari</span>
+        </motion.div>
 
-        <h2 className="text-2xl md:text-3xl font-extrabold text-slate-800 dark:text-slate-100 tracking-tight leading-tight">
-          ID raqam orqali qidirish
+        <h2 className="text-4xl md:text-5xl font-extrabold tracking-tight leading-tight mb-4 text-slate-800 dark:text-slate-100">
+          <span className="bg-gradient-royal bg-clip-text text-transparent pb-1">SDTU Imtihon</span>
+          <br className="md:hidden" /> Jadvallari
         </h2>
-        <p className="text-xs text-slate-400 dark:text-slate-500 mt-2 max-w-md mx-auto mb-4">
-          Imtihon vaqti, auditoriyasi hamda boshqa ma'lumotlarni bilib olish uchun talaba ID raqamini kiriting.
+        <p className="text-sm md:text-base text-slate-500 dark:text-slate-400 mt-2 max-w-lg mx-auto mb-6 leading-relaxed font-medium">
+          Imtihon sanasi, vaqti, auditoriyasi hamda boshqa ma'lumotlarni tez va oson bilib olish uchun talaba ID raqamini kiriting.
         </p>
-
-
       </div>
 
       {/* Search Input Box */}
-      <form onSubmit={handleSearch} className="w-full max-w-xl mx-auto mb-6">
-        <div className="relative flex items-center">
-          <div className="absolute left-4.5 text-slate-400 dark:text-slate-500">
-            <Search size={20} className="stroke-[2.5]" />
+      <form onSubmit={handleSearch} className="w-full max-w-2xl mx-auto mb-8 relative z-10">
+        <div className="relative flex items-center group">
+          <div className="absolute left-5 text-slate-400 dark:text-slate-500 group-focus-within:text-blue-500 transition-colors duration-300">
+            <Search size={22} className="stroke-[2.5]" />
           </div>
           <input
             type="text"
-            placeholder="Masalan: 643129"
+            placeholder="Talaba ID raqamini kiriting..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onTouchStart={initAudio}
             onClick={initAudio}
             disabled={loading}
-            className="w-full pl-12 pr-32 py-4 rounded-3xl glass-effect text-slate-800 dark:text-slate-100 font-bold placeholder-slate-400 border border-slate-200/50 dark:border-slate-800/80 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition-all duration-300 text-base soft-shadow"
+            className="w-full pl-14 pr-36 py-5 rounded-[2rem] glass-effect text-slate-800 dark:text-slate-100 font-bold placeholder-slate-400 border border-slate-200/60 dark:border-slate-700/50 focus:outline-none focus:ring-[4px] focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-300 text-lg shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgba(0,0,0,0.2)]"
           />
           <button
             type="submit"
             disabled={loading}
             onClick={initAudio}
             onTouchStart={initAudio}
-            className="absolute right-2 px-6 py-2.5 rounded-2xl bg-gradient-royal text-white text-xs font-bold hover:opacity-95 transition-all active:scale-95 flex items-center justify-center gap-1.5 soft-shadow"
+            className="absolute right-2.5 px-7 py-3 rounded-3xl bg-gradient-royal text-white text-sm font-bold hover:opacity-95 transition-all active:scale-95 flex items-center justify-center gap-2 premium-shadow"
           >
             {loading ? (
-              <Loader2 size={14} className="animate-spin" />
+              <Loader2 size={16} className="animate-spin" />
             ) : (
               "Qidirish"
             )}
@@ -237,9 +248,9 @@ useEffect(() => {
 
       {/* Quick Search Helpers (Recent Searches) */}
       {recentSearches.length > 0 && !results && !loading && (
-        <div className="flex flex-wrap items-center justify-center gap-2 mb-8 max-w-xl mx-auto">
-          <span className="text-xxs font-semibold text-slate-400 dark:text-slate-500 flex items-center gap-1">
-            <Star size={11} />
+        <div className="flex flex-wrap items-center justify-center gap-2.5 mb-10 max-w-2xl mx-auto">
+          <span className="text-xs font-medium text-slate-400 dark:text-slate-500 flex items-center gap-1.5 mr-1">
+            <RefreshCw size={12} className="opacity-70" />
             Yaqindagilar:
           </span>
           {recentSearches.map((item, idx) => (
@@ -250,7 +261,7 @@ useEffect(() => {
                 setQuery(item.query);
                 handleSearch(null, item.query);
               }}
-              className="px-3 py-1.5 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700/80 text-slate-600 dark:text-slate-300 text-xxs font-semibold transition-all active:scale-95"
+              className="px-4 py-2 rounded-xl bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm hover:bg-blue-50 dark:hover:bg-slate-700/80 text-slate-600 dark:text-slate-300 text-sm font-semibold transition-all hover:-translate-y-0.5 active:scale-95 border border-slate-200/50 dark:border-slate-700/50 shadow-sm"
             >
               {item.query}
             </button>
